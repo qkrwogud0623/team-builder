@@ -14,7 +14,8 @@ import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CancelIcon from '@mui/icons-material/Cancel';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem'; // 삭제 건의 아이콘
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import UndoIcon from '@mui/icons-material/Undo'; // 건의 반려 아이콘
 
 // Firebase SDK import
 import { initializeApp } from "firebase/app";
@@ -124,11 +125,7 @@ function App() {
   useEffect(() => {
     if (!isAuthReady) return;
     const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-    
-    // --- ▼▼▼▼▼ 삭제 건의 곡을 위로 정렬하도록 쿼리 수정 ▼▼▼▼▼ ---
     const songsQuery = query(songsCollectionRef, orderBy('deletionSuggested', 'desc'), orderBy('createdAt', 'desc'));
-    // --- ▲▲▲▲▲ 삭제 건의 곡을 위로 정렬하도록 쿼리 수정 ▲▲▲▲▲ ---
-
     const songsUnsubscribe = onSnapshot(songsQuery, (snapshot) => setSongs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
     const teamSessionUnsubscribe = onSnapshot(teamSessionDocRef, (doc) => {
       if (doc.exists()) {
@@ -220,7 +217,7 @@ function App() {
       title_lowercase: trimmedTitle.toLowerCase(), 
       voters: [], 
       createdAt: new Date(),
-      deletionSuggested: false // 삭제 건의 필드 추가
+      deletionSuggested: false
     });
     setNewSongTitle('');
   };
@@ -231,12 +228,17 @@ function App() {
     }
   };
 
-  // --- ▼▼▼▼▼ 삭제 건의 핸들러 추가 ▼▼▼▼▼ ---
   const handleSuggestDeletion = async (songId) => {
     const songDocRef = doc(db, "songs", songId);
     await updateDoc(songDocRef, { deletionSuggested: true });
   };
-  // --- ▲▲▲▲▲ 삭제 건의 핸들러 추가 ▲▲▲▲▲ ---
+
+  // --- ▼▼▼▼▼ 삭제 건의 반려 핸들러 추가 ▼▼▼▼▼ ---
+  const handleRejectDeletion = async (songId) => {
+    const songDocRef = doc(db, "songs", songId);
+    await updateDoc(songDocRef, { deletionSuggested: false });
+  };
+  // --- ▲▲▲▲▲ 삭제 건의 반려 핸들러 추가 ▲▲▲▲▲ ---
 
   const handleVote = async () => {
     if (!currentUser || !selectedSongId) return;
@@ -368,23 +370,38 @@ function App() {
                               <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)} disabled={userVoteCount >= VOTE_LIMIT}>투표하기</Button>
                             )}
                             
-                            {/* --- ▼▼▼▼▼ 삭제 건의 및 관리자 삭제 버튼 UI 수정 ▼▼▼▼▼ --- */}
-                            {!song.deletionSuggested && (
-                              <Tooltip title="삭제 건의">
-                                <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
-                                  <ReportProblemIcon />
-                                </IconButton>
-                              </Tooltip>
+                            {/* --- ▼▼▼▼▼ 삭제/건의/반려 버튼 UI 수정 ▼▼▼▼▼ --- */}
+                            {currentUser.role === 'admin' ? (
+                              song.deletionSuggested ? (
+                                <>
+                                  <Tooltip title="건의 반려">
+                                    <IconButton onClick={() => handleRejectDeletion(song.id)} sx={{ml: 1}} color="success">
+                                      <UndoIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="영구 삭제">
+                                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error">
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              ) : (
+                                <Tooltip title="삭제 건의">
+                                  <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
+                                    <ReportProblemIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              )
+                            ) : (
+                              !song.deletionSuggested && (
+                                <Tooltip title="삭제 건의">
+                                  <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
+                                    <ReportProblemIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              )
                             )}
-                            
-                            {currentUser.role === 'admin' && song.deletionSuggested && (
-                              <Tooltip title="영구 삭제">
-                                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} sx={{ml: 1}} color="error">
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {/* --- ▲▲▲▲▲ 삭제 건의 및 관리자 삭제 버튼 UI 수정 ▲▲▲▲▲ --- */}
+                            {/* --- ▲▲▲▲▲ 삭제/건의/반려 버튼 UI 수정 ▲▲▲▲▲ --- */}
                           </Box>
                         }
                       >
