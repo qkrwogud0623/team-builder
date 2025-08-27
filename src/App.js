@@ -5,7 +5,7 @@ import {
   createTheme, ThemeProvider, CssBaseline, IconButton, Tabs, Tab,
   Checkbox, FormControlLabel, Select, MenuItem, FormControl, InputLabel,
   List, ListItem, ListItemText, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  CircularProgress, Tooltip
+  CircularProgress, Tooltip, Divider
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -15,7 +15,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import UndoIcon from '@mui/icons-material/Undo'; // 건의 반려 아이콘
+import UndoIcon from '@mui/icons-material/Undo';
 
 // Firebase SDK import
 import { initializeApp } from "firebase/app";
@@ -229,28 +229,22 @@ function App() {
   };
 
   const handleSuggestDeletion = async (songId) => {
-    const songDocRef = doc(db, "songs", songId);
-    await updateDoc(songDocRef, { deletionSuggested: true });
+    await updateDoc(doc(db, "songs", songId), { deletionSuggested: true });
   };
 
-  // --- ▼▼▼▼▼ 삭제 건의 반려 핸들러 추가 ▼▼▼▼▼ ---
   const handleRejectDeletion = async (songId) => {
-    const songDocRef = doc(db, "songs", songId);
-    await updateDoc(songDocRef, { deletionSuggested: false });
+    await updateDoc(doc(db, "songs", songId), { deletionSuggested: false });
   };
-  // --- ▲▲▲▲▲ 삭제 건의 반려 핸들러 추가 ▲▲▲▲▲ ---
 
   const handleVote = async () => {
     if (!currentUser || !selectedSongId) return;
-    const songDocRef = doc(db, "songs", selectedSongId);
-    await updateDoc(songDocRef, { voters: arrayUnion(currentUser.name) });
+    await updateDoc(doc(db, "songs", selectedSongId), { voters: arrayUnion(currentUser.name) });
     setOpenVoteDialog(false); setSelectedSongId(null);
   };
   
   const handleCancelVote = async (songId) => {
     if (!currentUser) return;
-    const songDocRef = doc(db, "songs", songId);
-    await updateDoc(songDocRef, { voters: arrayRemove(currentUser.name) });
+    await updateDoc(doc(db, "songs", songId), { voters: arrayRemove(currentUser.name) });
   };
 
   const handleClickOpenDialog = (songId) => { setSelectedSongId(songId); setOpenVoteDialog(true); };
@@ -286,7 +280,7 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
+          <Typography variant="h4" component="h1">마테시스 화이팅</Typography>
           <Box>
             {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" sx={{mr: 2}} />}
             <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
@@ -359,61 +353,53 @@ function App() {
                   {songs.map((song) => {
                     const hasVoted = song.voters.includes(currentUser.name);
                     return (
-                      <ListItem 
-                        key={song.id} 
-                        divider 
-                        secondaryAction={
-                          <Box sx={{display: 'flex', alignItems: 'center'}}>
-                            {hasVoted ? (
-                              <Button variant="contained" color="error" size="small" startIcon={<CancelIcon />} onClick={() => handleCancelVote(song.id)}>투표 취소</Button>
-                            ) : (
-                              <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)} disabled={userVoteCount >= VOTE_LIMIT}>투표하기</Button>
-                            )}
-                            
-                            {/* --- ▼▼▼▼▼ 삭제/건의/반려 버튼 UI 수정 ▼▼▼▼▼ --- */}
-                            {currentUser.role === 'admin' ? (
-                              song.deletionSuggested ? (
-                                <>
-                                  <Tooltip title="건의 반려">
-                                    <IconButton onClick={() => handleRejectDeletion(song.id)} sx={{ml: 1}} color="success">
-                                      <UndoIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="영구 삭제">
-                                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error">
-                                      <DeleteIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                </>
-                              ) : (
-                                <Tooltip title="삭제 건의">
-                                  <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
-                                    <ReportProblemIcon />
+                      // --- ▼▼▼▼▼ UI 레이아웃 수정 ▼▼▼▼▼ ---
+                      <ListItem key={song.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <Typography variant="h6" color={song.deletionSuggested ? 'error' : 'inherit'}>{song.title}</Typography>
+                        <Box sx={{ my: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color={voter === currentUser.name ? "primary" : "secondary"} />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
+                        </Box>
+                        <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                          {hasVoted ? (
+                            <Button variant="contained" color="error" size="small" startIcon={<CancelIcon />} onClick={() => handleCancelVote(song.id)}>투표 취소</Button>
+                          ) : (
+                            <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)} disabled={userVoteCount >= VOTE_LIMIT}>투표하기</Button>
+                          )}
+                          
+                          {currentUser.role === 'admin' ? (
+                            song.deletionSuggested ? (
+                              <>
+                                <Tooltip title="건의 반려">
+                                  <IconButton onClick={() => handleRejectDeletion(song.id)} color="success">
+                                    <UndoIcon />
                                   </IconButton>
                                 </Tooltip>
-                              )
-                            ) : (
-                              !song.deletionSuggested && (
-                                <Tooltip title="삭제 건의">
-                                  <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
-                                    <ReportProblemIcon />
+                                <Tooltip title="영구 삭제">
+                                  <IconButton aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error">
+                                    <DeleteIcon />
                                   </IconButton>
                                 </Tooltip>
-                              )
-                            )}
-                            {/* --- ▲▲▲▲▲ 삭제/건의/반려 버튼 UI 수정 ▲▲▲▲▲ --- */}
-                          </Box>
-                        }
-                      >
-                        <ListItemText 
-                          primary={<Typography variant="h6" color={song.deletionSuggested ? 'error' : 'inherit'}>{song.title}</Typography>} 
-                          secondary={
-                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                              {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color={voter === currentUser.name ? "primary" : "secondary"} />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
-                            </Box>
-                          } 
-                        />
+                              </>
+                            ) : (
+                              <Tooltip title="삭제 건의">
+                                <IconButton onClick={() => handleSuggestDeletion(song.id)}>
+                                  <ReportProblemIcon />
+                                </IconButton>
+                              </Tooltip>
+                            )
+                          ) : (
+                            !song.deletionSuggested && (
+                              <Tooltip title="삭제 건의">
+                                <IconButton onClick={() => handleSuggestDeletion(song.id)}>
+                                  <ReportProblemIcon />
+                                </IconButton>
+                              </Tooltip>
+                            )
+                          )}
+                        </Box>
+                        <Divider sx={{width: '100%', mt: 2}}/>
                       </ListItem>
+                      // --- ▲▲▲▲▲ UI 레이아웃 수정 ▲▲▲▲▲ ---
                     );
                   })}
                 </List>
