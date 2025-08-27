@@ -280,7 +280,7 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
+          <Typography variant="h4" component="h1">마테시스 파이팅</Typography>
           <Box>
             {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" sx={{mr: 2}} />}
             <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
