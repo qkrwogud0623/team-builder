@@ -279,12 +279,16 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 파이팅</Typography>
-          <Box>
-            {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" sx={{mr: 2}} />}
-            <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
+          {/* --- ▼▼▼▼▼ UI 레이아웃 수정 ▼▼▼▼▼ --- */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+            {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" />}
+            <Button startIcon={<LogoutIcon />} onClick={handleLogout} size="small">
+              로그아웃
+            </Button>
           </Box>
+          {/* --- ▲▲▲▲▲ UI 레이아웃 수정 ▲▲▲▲▲ --- */}
         </Box>
         
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
