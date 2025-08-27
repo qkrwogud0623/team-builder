@@ -4,7 +4,7 @@ import {
   Container, Typography, Box, TextField, Button, Paper, Grid,
   createTheme, ThemeProvider, CssBaseline, IconButton, Tabs, Tab,
   Checkbox, FormControlLabel, Select, MenuItem, FormControl, InputLabel,
-  List, ListItem, ListItemText, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
+  List, ListItem, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   CircularProgress, Tooltip, Divider
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -280,7 +280,7 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 화이팅</Typography>
+          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
           <Box>
             {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" sx={{mr: 2}} />}
             <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
@@ -353,7 +353,6 @@ function App() {
                   {songs.map((song) => {
                     const hasVoted = song.voters.includes(currentUser.name);
                     return (
-                      // --- ▼▼▼▼▼ UI 레이아웃 수정 ▼▼▼▼▼ ---
                       <ListItem key={song.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                         <Typography variant="h6" color={song.deletionSuggested ? 'error' : 'inherit'}>{song.title}</Typography>
                         <Box sx={{ my: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -399,7 +398,6 @@ function App() {
                         </Box>
                         <Divider sx={{width: '100%', mt: 2}}/>
                       </ListItem>
-                      // --- ▲▲▲▲▲ UI 레이아웃 수정 ▲▲▲▲▲ ---
                     );
                   })}
                 </List>
