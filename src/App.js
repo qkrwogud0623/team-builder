@@ -8,7 +8,6 @@ import {
   CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-// import DeleteIcon from '@mui/icons-material/Delete'; // 1. 이 줄을 삭제하거나 주석 처리
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
@@ -18,7 +17,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { 
-  getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion, query, orderBy, where, getDocs, setDoc
+  getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion, query, orderBy, where, getDocs, setDoc, getDoc
 } from "firebase/firestore";
 
 // --- Firebase Configuration ---
@@ -39,29 +38,33 @@ const db = getFirestore(app);
 // Firestore collection references
 const songsCollectionRef = collection(db, "songs");
 const usersCollectionRef = collection(db, "users");
+// --- ▼▼▼▼▼ 팀 상태 공유를 위한 문서 참조 ▼▼▼▼▼ ---
+const teamSessionDocRef = doc(db, "session", "main");
+// --- ▲▲▲▲▲ 팀 상태 공유를 위한 문서 참조 ▲▲▲▲▲ ---
 
-// 세션 정보
+const ADMIN_USERS = ['김연진', '송하늘', '박재형'];
+
 const SESSIONS = {
   vocal: "보컬", guitar: "기타", bass: "베이스", drum: "드럼", keyboard: "키보드"
 };
 const SESSION_KEYS = Object.keys(SESSIONS);
 
-// 다크 모드 테마
 const darkTheme = createTheme({
   palette: {
     mode: 'dark', primary: { main: '#90caf9' }, secondary: { main: '#f48fb1' }, success: { main: '#81c784' },
   },
 });
 
-// --- 팀 빌더용 컴포넌트 ---
-const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinToggle }) => {
+const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinToggle, isAdmin }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2, height: '100%', border: team.isPinned ? '2px solid #81c784' : '1px solid rgba(255, 255, 255, 0.23)' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" color={team.isPinned ? 'success.main' : 'inherit'}>팀 {teamIndex + 1}</Typography>
-        <IconButton onClick={() => onPinToggle(team.id)} color={team.isPinned ? 'success' : 'default'}>
-          {team.isPinned ? <PushPinIcon /> : <PushPinOutlinedIcon />}
-        </IconButton>
+        {isAdmin && (
+          <IconButton onClick={() => onPinToggle(team.id)} color={team.isPinned ? 'success' : 'default'}>
+            {team.isPinned ? <PushPinIcon /> : <PushPinOutlinedIcon />}
+          </IconButton>
+        )}
       </Box>
       {SESSION_KEYS.map(key => {
         const isMultiSlot = key === 'guitar' || key === 'keyboard';
@@ -75,7 +78,7 @@ const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinTo
               return (
                 <FormControl key={slotIndex} fullWidth size="small" sx={{ mb: 1 }}>
                   <InputLabel>{SESSIONS[key]} {isMultiSlot ? slotIndex + 1 : ''}</InputLabel>
-                  <Select value={assignedMember} label={`${SESSIONS[key]} ${isMultiSlot ? slotIndex + 1 : ''}`} onChange={(e) => onTeamChange(team.id, key, slotIndex, e.target.value)}>
+                  <Select value={assignedMember} label={`${SESSIONS[key]} ${isMultiSlot ? slotIndex + 1 : ''}`} onChange={(e) => onTeamChange(team.id, key, slotIndex, e.target.value)} disabled={!isAdmin}>
                     <MenuItem value=""><em>- 비우기 -</em></MenuItem>
                     {participants.filter(p => p.name && p.sessions.includes(key)).filter(p => !(isMultiSlot && p.name === team.members[key][1 - slotIndex])).map(p => <MenuItem key={`${p.id}-${slotIndex}`} value={p.name}>{p.name}</MenuItem>)}
                   </Select>
@@ -89,73 +92,66 @@ const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinTo
   );
 };
 
-// --- 메인 앱 컴포넌트 ---
 function App() {
-  // --- 공통 State ---
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userNameInput, setUserNameInput] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
   const [isAuthReady, setIsAuthReady] = useState(false);
-
-  // --- 팀 빌더 State ---
   const [allUsers, setAllUsers] = useState([]);
+  
+  // --- ▼▼▼▼▼ 팀 빌더 State (이제 Firestore와 동기화됨) ▼▼▼▼▼ ---
   const [teamCount, setTeamCount] = useState(2);
   const [generatedTeams, setGeneratedTeams] = useState(null);
+  // --- ▲▲▲▲▲ 팀 빌더 State (이제 Firestore와 동기화됨) ▲▲▲▲▲ ---
 
-  // --- 합주곡 투표 State ---
   const [songs, setSongs] = useState([]);
   const [newSongTitle, setNewSongTitle] = useState('');
   const [openVoteDialog, setOpenVoteDialog] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState(null);
 
-  // --- Firebase 연동: 인증 및 데이터 로딩 ---
   useEffect(() => {
     const authAndLoad = async () => {
       try {
         await signInAnonymously(auth);
         const savedUser = localStorage.getItem('ensemble_user');
-        if (savedUser) {
-          setCurrentUser(JSON.parse(savedUser));
-        }
-        setIsAuthReady(true); // 인증 준비 완료 상태 설정
-      } catch (error) {
-        console.error("Authentication failed:", error);
-      } finally {
-        setLoading(false);
-      }
+        if (savedUser) setCurrentUser(JSON.parse(savedUser));
+        setIsAuthReady(true);
+      } catch (error) { console.error("Authentication failed:", error); } 
+      finally { setLoading(false); }
     };
     authAndLoad();
   }, []);
 
   useEffect(() => {
-    // 2. auth.currentUser 대신 isAuthReady를 의존성으로 사용
     if (!isAuthReady) return;
-
-    const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => {
-      setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-
+    const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
     const songsQuery = query(songsCollectionRef, orderBy('createdAt', 'desc'));
-    const songsUnsubscribe = onSnapshot(songsQuery, (snapshot) => {
-      setSongs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const songsUnsubscribe = onSnapshot(songsQuery, (snapshot) => setSongs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
+    
+    // --- ▼▼▼▼▼ 팀 빌더 상태 실시간 동기화 리스너 ▼▼▼▼▼ ---
+    const teamSessionUnsubscribe = onSnapshot(teamSessionDocRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setGeneratedTeams(data.teams || null);
+        setTeamCount(data.teamCount || 2);
+      }
     });
+    // --- ▲▲▲▲▲ 팀 빌더 상태 실시간 동기화 리스너 ▲▲▲▲▲ ---
 
-    return () => {
-      usersUnsubscribe();
-      songsUnsubscribe();
-    };
-  }, [isAuthReady]); // 2. 의존성 배열 수정
+    return () => { usersUnsubscribe(); songsUnsubscribe(); teamSessionUnsubscribe(); };
+  }, [isAuthReady]);
 
-  // --- 핸들러: 로그인/로그아웃 ---
   const handleLogin = async () => {
     const name = userNameInput.trim();
     if (!name) return;
+    const role = ADMIN_USERS.includes(name) ? 'admin' : 'user';
     const userDocRef = doc(db, "users", name);
-    const user = { name, sessions: [] };
-    await setDoc(userDocRef, user, { merge: true });
-    setCurrentUser(user);
-    localStorage.setItem('ensemble_user', JSON.stringify(user));
+    const docSnap = await getDoc(userDocRef);
+    let userData = docSnap.exists() ? { ...docSnap.data(), role } : { name, sessions: [], role };
+    await setDoc(userDocRef, userData, { merge: true });
+    setCurrentUser(userData);
+    localStorage.setItem('ensemble_user', JSON.stringify(userData));
   };
   
   const handleLogout = () => {
@@ -163,23 +159,18 @@ function App() {
     setCurrentUser(null);
   };
 
-  // --- 핸들러: 프로필 세션 변경 ---
   const handleSessionChange = async (sessionKey) => {
-    const newSessions = currentUser.sessions.includes(sessionKey)
-      ? currentUser.sessions.filter(s => s !== sessionKey)
-      : [...currentUser.sessions, sessionKey];
+    const newSessions = currentUser.sessions.includes(sessionKey) ? currentUser.sessions.filter(s => s !== sessionKey) : [...currentUser.sessions, sessionKey];
     const updatedUser = { ...currentUser, sessions: newSessions };
     setCurrentUser(updatedUser);
     localStorage.setItem('ensemble_user', JSON.stringify(updatedUser));
-    const userDocRef = doc(db, "users", currentUser.name);
-    await updateDoc(userDocRef, { sessions: newSessions });
+    await updateDoc(doc(db, "users", currentUser.name), { sessions: newSessions });
   };
 
-  // --- 핸들러: 탭 변경 ---
   const handleTabChange = (event, newValue) => setCurrentTab(newValue);
 
-  // --- 핸들러: 팀 빌더 ---
-  const handleGenerateTeams = () => {
+  // --- ▼▼▼▼▼ Firestore에 팀 상태를 저장하도록 수정된 핸들러들 ▼▼▼▼▼ ---
+  const handleGenerateTeams = async () => {
     if (allUsers.length === 0) { alert("참여자가 없습니다."); return; }
     const pinnedTeams = generatedTeams ? generatedTeams.filter(t => t.isPinned) : [];
     const unpinnedTeamCount = teamCount - pinnedTeams.length;
@@ -196,23 +187,31 @@ function App() {
     };
     SESSION_KEYS.forEach(key => { for (const team of autoGeneratedTeams) { const candidate = findBestCandidate(key); if (candidate) { team.members[key][0] = candidate.name; gigCounts[candidate.name]++; } } });
     ['guitar', 'keyboard'].forEach(key => { for (const team of autoGeneratedTeams) { const personInFirstSlot = team.members[key][0]; const candidate = findBestCandidate(key, [personInFirstSlot]); if (candidate) { team.members[key][1] = candidate.name; gigCounts[candidate.name]++; } } });
-    setGeneratedTeams([...pinnedTeams, ...autoGeneratedTeams]);
+    
+    // 로컬 state 대신 Firestore에 저장
+    await setDoc(teamSessionDocRef, { teams: [...pinnedTeams, ...autoGeneratedTeams], teamCount: teamCount });
   };
-  const handleTeamChange = (teamId, sessionKey, slotIndex, newName) => {
-    setGeneratedTeams(generatedTeams.map(team => {
+
+  const handleTeamChange = async (teamId, sessionKey, slotIndex, newName) => {
+    const updatedTeams = generatedTeams.map(team => {
       if (team.id === teamId) {
         const newMembers = [...team.members[sessionKey]]; newMembers[slotIndex] = newName;
         const cleanedMembers = newMembers.filter(name => name);
         return { ...team, members: { ...team.members, [sessionKey]: cleanedMembers } };
       }
       return team;
-    }));
-  };
-  const handlePinToggle = (teamId) => {
-    setGeneratedTeams(generatedTeams.map(team => team.id === teamId ? { ...team, isPinned: !team.isPinned } : team));
+    });
+    // 로컬 state 대신 Firestore에 저장
+    await updateDoc(teamSessionDocRef, { teams: updatedTeams });
   };
 
-  // --- 핸들러: 합주곡 투표 ---
+  const handlePinToggle = async (teamId) => {
+    const updatedTeams = generatedTeams.map(team => team.id === teamId ? { ...team, isPinned: !team.isPinned } : team);
+    // 로컬 state 대신 Firestore에 저장
+    await updateDoc(teamSessionDocRef, { teams: updatedTeams });
+  };
+  // --- ▲▲▲▲▲ Firestore에 팀 상태를 저장하도록 수정된 핸들러들 ▲▲▲▲▲ ---
+
   const handleAddSong = async () => {
     const trimmedTitle = newSongTitle.trim();
     if (trimmedTitle === '') return;
@@ -222,16 +221,17 @@ function App() {
     await addDoc(songsCollectionRef, { title: trimmedTitle, title_lowercase: trimmedTitle.toLowerCase(), voters: [], createdAt: new Date() });
     setNewSongTitle('');
   };
+
   const handleVote = async () => {
     if (!currentUser || !selectedSongId) return;
     const songDocRef = doc(db, "songs", selectedSongId);
     await updateDoc(songDocRef, { voters: arrayUnion(currentUser.name) });
     setOpenVoteDialog(false); setSelectedSongId(null);
   };
+
   const handleClickOpenDialog = (songId) => { setSelectedSongId(songId); setOpenVoteDialog(true); };
   const handleCloseDialog = () => { setOpenVoteDialog(false); setSelectedSongId(null); };
 
-  // --- 로딩 중 화면 ---
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#121212' }}>
@@ -240,7 +240,6 @@ function App() {
     );
   }
   
-  // --- 로그인 화면 ---
   if (!currentUser) {
     return (
       <ThemeProvider theme={darkTheme}>
@@ -249,16 +248,8 @@ function App() {
           <Paper elevation={6} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Typography component="h1" variant="h5">로그인</Typography>
             <Box sx={{ mt: 1 }}>
-              <TextField
-                margin="normal" required fullWidth autoFocus
-                label="이름" name="name"
-                value={userNameInput}
-                onChange={(e) => setUserNameInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-              />
-              <Button fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} onClick={handleLogin}>
-                입장하기
-              </Button>
+              <TextField margin="normal" required fullWidth autoFocus label="이름" name="name" value={userNameInput} onChange={(e) => setUserNameInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+              <Button fullWidth variant="contained" sx={{ mt: 3, mb: 2 }} onClick={handleLogin}>입장하기</Button>
             </Box>
           </Paper>
         </Container>
@@ -266,19 +257,21 @@ function App() {
     );
   }
 
-  // --- 메인 앱 화면 ---
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
-          <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
+          <Box>
+            {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" sx={{mr: 2}} />}
+            <Button startIcon={<LogoutIcon />} onClick={handleLogout}>로그아웃</Button>
+          </Box>
         </Box>
         
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6">{currentUser.name}님, 안녕하세요!</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{mb: 1}}>가능한 세션을 선택해주세요. 팀 빌더에 자동으로 반영됩니다.</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{mb: 1}}>가능한 세션을 선택해주세요.</Typography>
           {SESSION_KEYS.map(key => (
             <FormControlLabel key={key} control={<Checkbox checked={currentUser.sessions.includes(key)} onChange={() => handleSessionChange(key)} />} label={SESSIONS[key]} />
           ))}
@@ -292,34 +285,40 @@ function App() {
             </Tabs>
           </Box>
           
-          {currentTab === 0 && ( /* 팀 빌더 탭 */
+          {currentTab === 0 && (
             <Box p={3}>
               <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>참여자 목록 ({allUsers.length}명)</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {allUsers.map(user => <Chip key={user.id} label={user.name} />)}
+                  {allUsers.map(user => <Chip key={user.id} label={user.name} color={user.role === 'admin' ? 'success' : 'default'} />)}
                 </Box>
               </Paper>
-              <Paper elevation={3} sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <TextField label="총 팀 수" type="number" value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))} size="small" InputProps={{ inputProps: { min: 1 } }} />
-                <Button variant="contained" color="secondary" size="large" onClick={handleGenerateTeams}>최적의 팀 생성하기</Button>
-              </Paper>
-              {generatedTeams && (
+
+              {currentUser.role === 'admin' && (
+                <Paper elevation={3} sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <TextField label="총 팀 수" type="number" value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))} size="small" InputProps={{ inputProps: { min: 1 } }} />
+                  <Button variant="contained" color="secondary" size="large" onClick={handleGenerateTeams}>최적의 팀 생성하기</Button>
+                </Paper>
+              )}
+
+              {generatedTeams ? (
                 <Paper elevation={3} sx={{ p: 3 }}>
                   <Typography variant="h6" gutterBottom>팀 구성 결과</Typography>
                   <Grid container spacing={2}>
                     {generatedTeams.map((team, index) => (
                       <Grid item xs={12} sm={6} md={4} key={team.id}>
-                        <EditableTeamCard team={team} teamIndex={index} participants={allUsers} onTeamChange={handleTeamChange} onPinToggle={handlePinToggle} />
+                        <EditableTeamCard team={team} teamIndex={index} participants={allUsers} onTeamChange={handleTeamChange} onPinToggle={handlePinToggle} isAdmin={currentUser.role === 'admin'} />
                       </Grid>
                     ))}
                   </Grid>
                 </Paper>
+              ) : (
+                <Typography sx={{textAlign: 'center', p: 3}}>관리자가 아직 팀을 생성하지 않았습니다.</Typography>
               )}
             </Box>
           )}
 
-          {currentTab === 1 && ( /* 합주곡 투표 탭 */
+          {currentTab === 1 && (
             <Box p={3}>
               <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
