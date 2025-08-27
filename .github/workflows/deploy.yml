@@ -35,7 +35,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3 # <--- 이 부분이 수정되었습니다!
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./build
 
@@ -48,4 +48,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4 # <--- 이 부분을 v2에서 v4로 수정했습니다!
