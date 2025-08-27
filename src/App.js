@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Container, Typography, Box, TextField, Button, Paper, Grid,
   createTheme, ThemeProvider, CssBaseline, IconButton, Tabs, Tab,
@@ -12,13 +12,14 @@ import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import LogoutIcon from '@mui/icons-material/Logout';
-import DeleteIcon from '@mui/icons-material/Delete'; // 삭제 아이콘 import
+import DeleteIcon from '@mui/icons-material/Delete';
+import CancelIcon from '@mui/icons-material/Cancel'; // 투표 취소 아이콘
 
 // Firebase SDK import
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously } from "firebase/auth";
 import { 
-  getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion, query, orderBy, where, getDocs, setDoc, getDoc, deleteDoc
+  getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion, query, orderBy, where, getDocs, setDoc, getDoc, deleteDoc, arrayRemove
 } from "firebase/firestore";
 
 // --- Firebase Configuration ---
@@ -42,6 +43,7 @@ const usersCollectionRef = collection(db, "users");
 const teamSessionDocRef = doc(db, "session", "main");
 
 const ADMIN_USERS = ['김연진', '송하늘', '박재형'];
+const VOTE_LIMIT = 3; // 투표 제한 횟수
 
 const SESSIONS = {
   vocal: "보컬", guitar: "기타", bass: "베이스", drum: "드럼", keyboard: "키보드"
@@ -133,6 +135,18 @@ function App() {
     return () => { usersUnsubscribe(); songsUnsubscribe(); teamSessionUnsubscribe(); };
   }, [isAuthReady]);
 
+  // --- ▼▼▼▼▼ 현재 유저의 투표 횟수 계산 ▼▼▼▼▼ ---
+  const userVoteCount = useMemo(() => {
+    if (!currentUser) return 0;
+    return songs.reduce((count, song) => {
+      if (song.voters.includes(currentUser.name)) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+  }, [songs, currentUser]);
+  // --- ▲▲▲▲▲ 현재 유저의 투표 횟수 계산 ▲▲▲▲▲ ---
+
   const handleLogin = async () => {
     const name = userNameInput.trim();
     if (!name) return;
@@ -207,18 +221,11 @@ function App() {
     setNewSongTitle('');
   };
 
-  // --- ▼▼▼▼▼ 곡 삭제 핸들러 추가 ▼▼▼▼▼ ---
   const handleDeleteSong = async (songId, songTitle) => {
     if (window.confirm(`정말로 "${songTitle}" 곡을 삭제하시겠습니까?`)) {
-      try {
-        await deleteDoc(doc(db, "songs", songId));
-      } catch (error) {
-        console.error("Error removing document: ", error);
-        alert("곡 삭제 중 오류가 발생했습니다.");
-      }
+      await deleteDoc(doc(db, "songs", songId));
     }
   };
-  // --- ▲▲▲▲▲ 곡 삭제 핸들러 추가 ▲▲▲▲▲ ---
 
   const handleVote = async () => {
     if (!currentUser || !selectedSongId) return;
@@ -226,6 +233,14 @@ function App() {
     await updateDoc(songDocRef, { voters: arrayUnion(currentUser.name) });
     setOpenVoteDialog(false); setSelectedSongId(null);
   };
+  
+  // --- ▼▼▼▼▼ 투표 취소 핸들러 추가 ▼▼▼▼▼ ---
+  const handleCancelVote = async (songId) => {
+    if (!currentUser) return;
+    const songDocRef = doc(db, "songs", songId);
+    await updateDoc(songDocRef, { voters: arrayRemove(currentUser.name) });
+  };
+  // --- ▲▲▲▲▲ 투표 취소 핸들러 추가 ▲▲▲▲▲ ---
 
   const handleClickOpenDialog = (songId) => { setSelectedSongId(songId); setOpenVoteDialog(true); };
   const handleCloseDialog = () => { setOpenVoteDialog(false); setSelectedSongId(null); };
@@ -325,32 +340,43 @@ function App() {
                 </Box>
               </Paper>
               <Paper elevation={3} sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>투표 현황</Typography>
+                <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <Typography variant="h6" gutterBottom>투표 현황</Typography>
+                  <Chip label={`내 투표 수: ${userVoteCount} / ${VOTE_LIMIT}`} color={userVoteCount >= VOTE_LIMIT ? "error" : "primary"} />
+                </Box>
                 <List>
-                  {songs.map((song) => (
-                    <ListItem 
-                      key={song.id} 
-                      divider 
-                      secondaryAction={
-                        <Box>
-                          <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)}>투표하기</Button>
-                          {/* --- ▼▼▼▼▼ 관리자 전용 삭제 버튼 ▼▼▼▼▼ --- */}
-                          {currentUser.role === 'admin' && (
-                            <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} sx={{ml: 1}}>
-                              <DeleteIcon />
-                            </IconButton>
-                          )}
-                          {/* --- ▲▲▲▲▲ 관리자 전용 삭제 버튼 ▲▲▲▲▲ --- */}
-                        </Box>
-                      }
-                    >
-                      <ListItemText primary={<Typography variant="h6">{song.title}</Typography>} secondary={
-                        <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color="secondary" />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
-                        </Box>
-                      } />
-                    </ListItem>
-                  ))}
+                  {songs.map((song) => {
+                    const hasVoted = song.voters.includes(currentUser.name);
+                    return (
+                      <ListItem 
+                        key={song.id} 
+                        divider 
+                        secondaryAction={
+                          <Box>
+                            {/* --- ▼▼▼▼▼ 투표/취소 버튼 로직 수정 ▼▼▼▼▼ --- */}
+                            {hasVoted ? (
+                              <Button variant="contained" color="error" size="small" startIcon={<CancelIcon />} onClick={() => handleCancelVote(song.id)}>투표 취소</Button>
+                            ) : (
+                              <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)} disabled={userVoteCount >= VOTE_LIMIT}>투표하기</Button>
+                            )}
+                            {/* --- ▲▲▲▲▲ 투표/취소 버튼 로직 수정 ▲▲▲▲▲ --- */}
+                            
+                            {currentUser.role === 'admin' && (
+                              <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} sx={{ml: 1}}>
+                                <DeleteIcon />
+                              </IconButton>
+                            )}
+                          </Box>
+                        }
+                      >
+                        <ListItemText primary={<Typography variant="h6">{song.title}</Typography>} secondary={
+                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color={voter === currentUser.name ? "primary" : "secondary"} />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
+                          </Box>
+                        } />
+                      </ListItem>
+                    );
+                  })}
                 </List>
               </Paper>
             </Box>
