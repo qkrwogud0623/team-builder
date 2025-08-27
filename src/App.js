@@ -5,7 +5,7 @@ import {
   createTheme, ThemeProvider, CssBaseline, IconButton, Tabs, Tab,
   Checkbox, FormControlLabel, Select, MenuItem, FormControl, InputLabel,
   List, ListItem, ListItemText, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  CircularProgress
+  CircularProgress, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -13,7 +13,8 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CancelIcon from '@mui/icons-material/Cancel'; // 투표 취소 아이콘
+import CancelIcon from '@mui/icons-material/Cancel';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem'; // 삭제 건의 아이콘
 
 // Firebase SDK import
 import { initializeApp } from "firebase/app";
@@ -43,7 +44,7 @@ const usersCollectionRef = collection(db, "users");
 const teamSessionDocRef = doc(db, "session", "main");
 
 const ADMIN_USERS = ['김연진', '송하늘', '박재형'];
-const VOTE_LIMIT = 3; // 투표 제한 횟수
+const VOTE_LIMIT = 3;
 
 const SESSIONS = {
   vocal: "보컬", guitar: "기타", bass: "베이스", drum: "드럼", keyboard: "키보드"
@@ -123,7 +124,11 @@ function App() {
   useEffect(() => {
     if (!isAuthReady) return;
     const usersUnsubscribe = onSnapshot(usersCollectionRef, (snapshot) => setAllUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
-    const songsQuery = query(songsCollectionRef, orderBy('createdAt', 'desc'));
+    
+    // --- ▼▼▼▼▼ 삭제 건의 곡을 위로 정렬하도록 쿼리 수정 ▼▼▼▼▼ ---
+    const songsQuery = query(songsCollectionRef, orderBy('deletionSuggested', 'desc'), orderBy('createdAt', 'desc'));
+    // --- ▲▲▲▲▲ 삭제 건의 곡을 위로 정렬하도록 쿼리 수정 ▲▲▲▲▲ ---
+
     const songsUnsubscribe = onSnapshot(songsQuery, (snapshot) => setSongs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))));
     const teamSessionUnsubscribe = onSnapshot(teamSessionDocRef, (doc) => {
       if (doc.exists()) {
@@ -135,17 +140,10 @@ function App() {
     return () => { usersUnsubscribe(); songsUnsubscribe(); teamSessionUnsubscribe(); };
   }, [isAuthReady]);
 
-  // --- ▼▼▼▼▼ 현재 유저의 투표 횟수 계산 ▼▼▼▼▼ ---
   const userVoteCount = useMemo(() => {
     if (!currentUser) return 0;
-    return songs.reduce((count, song) => {
-      if (song.voters.includes(currentUser.name)) {
-        return count + 1;
-      }
-      return count;
-    }, 0);
+    return songs.reduce((count, song) => count + (song.voters.includes(currentUser.name) ? 1 : 0), 0);
   }, [songs, currentUser]);
-  // --- ▲▲▲▲▲ 현재 유저의 투표 횟수 계산 ▲▲▲▲▲ ---
 
   const handleLogin = async () => {
     const name = userNameInput.trim();
@@ -217,7 +215,13 @@ function App() {
     const q = query(songsCollectionRef, where("title_lowercase", "==", trimmedTitle.toLowerCase()));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) { alert('이미 추가된 곡입니다.'); return; }
-    await addDoc(songsCollectionRef, { title: trimmedTitle, title_lowercase: trimmedTitle.toLowerCase(), voters: [], createdAt: new Date() });
+    await addDoc(songsCollectionRef, { 
+      title: trimmedTitle, 
+      title_lowercase: trimmedTitle.toLowerCase(), 
+      voters: [], 
+      createdAt: new Date(),
+      deletionSuggested: false // 삭제 건의 필드 추가
+    });
     setNewSongTitle('');
   };
 
@@ -227,6 +231,13 @@ function App() {
     }
   };
 
+  // --- ▼▼▼▼▼ 삭제 건의 핸들러 추가 ▼▼▼▼▼ ---
+  const handleSuggestDeletion = async (songId) => {
+    const songDocRef = doc(db, "songs", songId);
+    await updateDoc(songDocRef, { deletionSuggested: true });
+  };
+  // --- ▲▲▲▲▲ 삭제 건의 핸들러 추가 ▲▲▲▲▲ ---
+
   const handleVote = async () => {
     if (!currentUser || !selectedSongId) return;
     const songDocRef = doc(db, "songs", selectedSongId);
@@ -234,13 +245,11 @@ function App() {
     setOpenVoteDialog(false); setSelectedSongId(null);
   };
   
-  // --- ▼▼▼▼▼ 투표 취소 핸들러 추가 ▼▼▼▼▼ ---
   const handleCancelVote = async (songId) => {
     if (!currentUser) return;
     const songDocRef = doc(db, "songs", songId);
     await updateDoc(songDocRef, { voters: arrayRemove(currentUser.name) });
   };
-  // --- ▲▲▲▲▲ 투표 취소 핸들러 추가 ▲▲▲▲▲ ---
 
   const handleClickOpenDialog = (songId) => { setSelectedSongId(songId); setOpenVoteDialog(true); };
   const handleCloseDialog = () => { setOpenVoteDialog(false); setSelectedSongId(null); };
@@ -352,28 +361,41 @@ function App() {
                         key={song.id} 
                         divider 
                         secondaryAction={
-                          <Box>
-                            {/* --- ▼▼▼▼▼ 투표/취소 버튼 로직 수정 ▼▼▼▼▼ --- */}
+                          <Box sx={{display: 'flex', alignItems: 'center'}}>
                             {hasVoted ? (
                               <Button variant="contained" color="error" size="small" startIcon={<CancelIcon />} onClick={() => handleCancelVote(song.id)}>투표 취소</Button>
                             ) : (
                               <Button variant="outlined" size="small" startIcon={<HowToVoteIcon />} onClick={() => handleClickOpenDialog(song.id)} disabled={userVoteCount >= VOTE_LIMIT}>투표하기</Button>
                             )}
-                            {/* --- ▲▲▲▲▲ 투표/취소 버튼 로직 수정 ▲▲▲▲▲ --- */}
                             
-                            {currentUser.role === 'admin' && (
-                              <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} sx={{ml: 1}}>
-                                <DeleteIcon />
-                              </IconButton>
+                            {/* --- ▼▼▼▼▼ 삭제 건의 및 관리자 삭제 버튼 UI 수정 ▼▼▼▼▼ --- */}
+                            {!song.deletionSuggested && (
+                              <Tooltip title="삭제 건의">
+                                <IconButton onClick={() => handleSuggestDeletion(song.id)} sx={{ml: 1}}>
+                                  <ReportProblemIcon />
+                                </IconButton>
+                              </Tooltip>
                             )}
+                            
+                            {currentUser.role === 'admin' && song.deletionSuggested && (
+                              <Tooltip title="영구 삭제">
+                                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} sx={{ml: 1}} color="error">
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {/* --- ▲▲▲▲▲ 삭제 건의 및 관리자 삭제 버튼 UI 수정 ▲▲▲▲▲ --- */}
                           </Box>
                         }
                       >
-                        <ListItemText primary={<Typography variant="h6">{song.title}</Typography>} secondary={
-                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color={voter === currentUser.name ? "primary" : "secondary"} />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
-                          </Box>
-                        } />
+                        <ListItemText 
+                          primary={<Typography variant="h6" color={song.deletionSuggested ? 'error' : 'inherit'}>{song.title}</Typography>} 
+                          secondary={
+                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                              {song.voters.length > 0 ? song.voters.map((voter, index) => (<Chip key={index} label={voter} size="small" color={voter === currentUser.name ? "primary" : "secondary"} />)) : <Typography variant="body2" color="text.secondary">아직 투표한 사람이 없습니다.</Typography>}
+                            </Box>
+                          } 
+                        />
                       </ListItem>
                     );
                   })}
