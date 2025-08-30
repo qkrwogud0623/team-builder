@@ -137,10 +137,26 @@ function App() {
     return () => { usersUnsubscribe(); songsUnsubscribe(); teamSessionUnsubscribe(); };
   }, [isAuthReady]);
 
+  // --- ▼▼▼▼▼ 신규 기능 ▼▼▼▼▼ ---
+  // 모든 유저의 투표 수를 계산하는 로직
+  const allUserVoteCounts = useMemo(() => {
+    const counts = allUsers.reduce((acc, user) => ({ ...acc, [user.name]: 0 }), {});
+    songs.forEach(song => {
+        song.voters.forEach(voterName => {
+            if (counts[voterName] !== undefined) {
+                counts[voterName]++;
+            }
+        });
+    });
+    return counts;
+  }, [songs, allUsers]);
+
   const userVoteCount = useMemo(() => {
     if (!currentUser) return 0;
-    return songs.reduce((count, song) => count + (song.voters.includes(currentUser.name) ? 1 : 0), 0);
-  }, [songs, currentUser]);
+    return allUserVoteCounts[currentUser.name] || 0;
+  }, [allUserVoteCounts, currentUser]);
+  // --- ▲▲▲▲▲ 신규 기능 ▲▲▲▲▲ ---
+
 
   const handleLogin = async () => {
     const name = userNameInput.trim();
@@ -280,15 +296,11 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
-          {/* --- ▼▼▼▼▼ UI 레이아웃 수정 ▼▼▼▼▼ --- */}
+          <Typography variant="h4" component="h1">마테시스 파이팅</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" />}
-            <Button startIcon={<LogoutIcon />} onClick={handleLogout} size="small">
-              로그아웃
-            </Button>
+            <Button startIcon={<LogoutIcon />} onClick={handleLogout} size="small">로그아웃</Button>
           </Box>
-          {/* --- ▲▲▲▲▲ UI 레이아웃 수정 ▲▲▲▲▲ --- */}
         </Box>
         
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
@@ -353,6 +365,30 @@ function App() {
                   <Typography variant="h6" gutterBottom>투표 현황</Typography>
                   <Chip label={`내 투표 수: ${userVoteCount} / ${VOTE_LIMIT}`} color={userVoteCount >= VOTE_LIMIT ? "error" : "primary"} />
                 </Box>
+                {/* --- ▼▼▼▼▼ 신규 UI ▼▼▼▼▼ --- */}
+                <Typography variant="body2" color="text.secondary" sx={{mt: 2, mb: 1}}>전체 회원 투표 현황</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                    {allUsers.map(user => {
+                        const votesUsed = allUserVoteCounts[user.name] || 0;
+                        const votesLeft = VOTE_LIMIT - votesUsed;
+                        let chipColor = "success";
+                        if (votesLeft <= 1 && votesLeft > 0) chipColor = "warning";
+                        if (votesLeft === 0) chipColor = "error";
+                        
+                        return (
+                            <Tooltip key={user.id} title={`${votesUsed}표 사용`}>
+                                <Chip
+                                    label={`${user.name}: ${votesLeft}표 남음`}
+                                    color={chipColor}
+                                    variant="outlined"
+                                    size="small"
+                                />
+                            </Tooltip>
+                        );
+                    })}
+                </Box>
+                <Divider sx={{mb: 2}} />
+                {/* --- ▲▲▲▲▲ 신규 UI ▲▲▲▲▲ --- */}
                 <List>
                   {songs.map((song) => {
                     const hasVoted = song.voters.includes(currentUser.name);
@@ -373,27 +409,27 @@ function App() {
                             song.deletionSuggested ? (
                               <>
                                 <Tooltip title="건의 반려">
-                                  <IconButton onClick={() => handleRejectDeletion(song.id)} color="success">
+                                  <IconButton onClick={() => handleRejectDeletion(song.id)} color="success" size="small">
                                     <UndoIcon />
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip title="영구 삭제">
-                                  <IconButton aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error">
+                                  <IconButton aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error" size="small">
                                     <DeleteIcon />
                                   </IconButton>
                                 </Tooltip>
                               </>
                             ) : (
-                              <Tooltip title="삭제 건의">
-                                <IconButton onClick={() => handleSuggestDeletion(song.id)}>
-                                  <ReportProblemIcon />
+                              <Tooltip title="영구 삭제">
+                                <IconButton aria-label="delete" onClick={() => handleDeleteSong(song.id, song.title)} color="error" size="small">
+                                  <DeleteIcon />
                                 </IconButton>
                               </Tooltip>
                             )
                           ) : (
                             !song.deletionSuggested && (
                               <Tooltip title="삭제 건의">
-                                <IconButton onClick={() => handleSuggestDeletion(song.id)}>
+                                <IconButton onClick={() => handleSuggestDeletion(song.id)} size="small">
                                   <ReportProblemIcon />
                                 </IconButton>
                               </Tooltip>
