@@ -58,15 +58,23 @@ const darkTheme = createTheme({
   },
 });
 
-const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinToggle, isAdmin }) => {
+const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinToggle, isAdmin, onTeamNameChange, onPositionPinToggle }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2, height: '100%', border: team.isPinned ? '2px solid #81c784' : '1px solid rgba(255, 255, 255, 0.23)' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" color={team.isPinned ? 'success.main' : 'inherit'}>팀 {teamIndex + 1}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <TextField
+          value={team.name || `팀 ${teamIndex + 1}`}
+          onChange={(e) => onTeamNameChange(team.id, e.target.value)}
+          variant="standard"
+          disabled={!isAdmin}
+          sx={{ '& .MuiInput-underline:before': { borderBottom: 'none' }, '& .MuiInput-input': { fontSize: '1.25rem', fontWeight: 'bold' } }}
+        />
         {isAdmin && (
-          <IconButton onClick={() => onPinToggle(team.id)} color={team.isPinned ? 'success' : 'default'}>
-            {team.isPinned ? <PushPinIcon /> : <PushPinOutlinedIcon />}
-          </IconButton>
+          <Tooltip title="팀 전체 고정">
+            <IconButton onClick={() => onPinToggle(team.id)} color={team.isPinned ? 'success' : 'default'}>
+              {team.isPinned ? <PushPinIcon /> : <PushPinOutlinedIcon />}
+            </IconButton>
+          </Tooltip>
         )}
       </Box>
       {SESSION_KEYS.map(key => {
@@ -78,14 +86,24 @@ const EditableTeamCard = ({ team, teamIndex, participants, onTeamChange, onPinTo
             {Array.from({ length: numSlots }).map((_, slotIndex) => {
               if (isMultiSlot && slotIndex === 1 && !team.members[key][0]) return null;
               const assignedMember = team.members[key][slotIndex] || '';
+              const isSlotPinned = team.pinnedSlots?.[key]?.[slotIndex] || false;
               return (
-                <FormControl key={slotIndex} fullWidth size="small" sx={{ mb: 1 }}>
-                  <InputLabel>{SESSIONS[key]} {isMultiSlot ? slotIndex + 1 : ''}</InputLabel>
-                  <Select value={assignedMember} label={`${SESSIONS[key]} ${isMultiSlot ? slotIndex + 1 : ''}`} onChange={(e) => onTeamChange(team.id, key, slotIndex, e.target.value)} disabled={!isAdmin}>
-                    <MenuItem value=""><em>- 비우기 -</em></MenuItem>
-                    {participants.filter(p => p.name && p.sessions.includes(key)).filter(p => !(isMultiSlot && p.name === team.members[key][1 - slotIndex])).map(p => <MenuItem key={`${p.id}-${slotIndex}`} value={p.name}>{p.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
+                <Box key={slotIndex} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>{SESSIONS[key]} {isMultiSlot ? slotIndex + 1 : ''}</InputLabel>
+                    <Select value={assignedMember} label={`${SESSIONS[key]} ${isMultiSlot ? slotIndex + 1 : ''}`} onChange={(e) => onTeamChange(team.id, key, slotIndex, e.target.value)} disabled={!isAdmin}>
+                      <MenuItem value=""><em>- 비우기 -</em></MenuItem>
+                      {participants.filter(p => p.name && p.sessions.includes(key)).filter(p => !(isMultiSlot && p.name === team.members[key][1 - slotIndex])).map(p => <MenuItem key={`${p.id}-${slotIndex}`} value={p.name}>{p.name}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                  {isAdmin && (
+                     <Tooltip title="포지션 고정">
+                        <IconButton onClick={() => onPositionPinToggle(team.id, key, slotIndex)} size="small" color={isSlotPinned ? 'success' : 'default'}>
+                           {isSlotPinned ? <PushPinIcon fontSize="small"/> : <PushPinOutlinedIcon fontSize="small"/>}
+                        </IconButton>
+                     </Tooltip>
+                  )}
+                </Box>
               );
             })}
           </Box>
@@ -137,8 +155,6 @@ function App() {
     return () => { usersUnsubscribe(); songsUnsubscribe(); teamSessionUnsubscribe(); };
   }, [isAuthReady]);
 
-  // --- ▼▼▼▼▼ 신규 기능 ▼▼▼▼▼ ---
-  // 모든 유저의 투표 수를 계산하는 로직
   const allUserVoteCounts = useMemo(() => {
     const counts = allUsers.reduce((acc, user) => ({ ...acc, [user.name]: 0 }), {});
     songs.forEach(song => {
@@ -155,6 +171,21 @@ function App() {
     if (!currentUser) return 0;
     return allUserVoteCounts[currentUser.name] || 0;
   }, [allUserVoteCounts, currentUser]);
+
+  // --- ▼▼▼▼▼ 신규 기능 ▼▼▼▼▼ ---
+  // 모든 유저의 팀 참여 횟수를 계산하는 로직
+  const teamParticipationCounts = useMemo(() => {
+    if (!generatedTeams) return {};
+    const counts = allUsers.reduce((acc, user) => ({ ...acc, [user.name]: 0 }), {});
+    generatedTeams.forEach(team => {
+        Object.values(team.members).flat().forEach(name => {
+            if (counts[name] !== undefined) {
+                counts[name]++;
+            }
+        });
+    });
+    return counts;
+  }, [generatedTeams, allUsers]);
   // --- ▲▲▲▲▲ 신규 기능 ▲▲▲▲▲ ---
 
 
@@ -184,31 +215,109 @@ function App() {
   };
 
   const handleTabChange = (event, newValue) => setCurrentTab(newValue);
-
+  
   const handleGenerateTeams = async () => {
-    if (allUsers.length === 0) { alert("참여자가 없습니다."); return; }
-    const pinnedTeams = generatedTeams ? generatedTeams.filter(t => t.isPinned) : [];
-    const unpinnedTeamCount = teamCount - pinnedTeams.length;
-    if (unpinnedTeamCount < 0) { alert("총 팀 수는 고정된 팀 수보다 적을 수 없습니다."); return; }
-    const gigCounts = allUsers.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {});
-    pinnedTeams.forEach(team => { Object.values(team.members).flat().forEach(name => { if (gigCounts[name] !== undefined) gigCounts[name]++; }); });
-    let autoGeneratedTeams = Array.from({ length: unpinnedTeamCount }, (_, i) => ({ id: `team-${Date.now()}-${i}`, members: SESSION_KEYS.reduce((acc, key) => ({ ...acc, [key]: [] }), {}), isPinned: false }));
+    const validParticipants = allUsers.filter(p => p.name && p.sessions.length > 0);
+    if (validParticipants.length === 0) { alert("참여자를 1명 이상 입력해주세요."); return; }
+
+    const gigCounts = validParticipants.reduce((acc, p) => ({ ...acc, [p.name]: 0 }), {});
+    
+    let newTeams = generatedTeams ? JSON.parse(JSON.stringify(generatedTeams)) : [];
+
+    if (newTeams.length < teamCount) {
+        for (let i = newTeams.length; i < teamCount; i++) {
+            newTeams.push({
+                id: `team-${Date.now()}-${i}`,
+                name: `팀 ${i + 1}`,
+                members: SESSION_KEYS.reduce((acc, key) => ({ ...acc, [key]: [] }), {}),
+                isPinned: false,
+                pinnedSlots: SESSION_KEYS.reduce((acc, key) => {
+                    acc[key] = (key === 'guitar' || key === 'keyboard') ? [false, false] : [false];
+                    return acc;
+                }, {})
+            });
+        }
+    }
+    if (newTeams.length > teamCount) {
+        newTeams = newTeams.slice(0, teamCount);
+    }
+    
+    newTeams.forEach(team => {
+        if (team.isPinned) {
+            Object.values(team.members).flat().forEach(name => {
+                if (gigCounts[name] !== undefined) gigCounts[name]++;
+            });
+        } else {
+            SESSION_KEYS.forEach(key => {
+                const numSlots = (key === 'guitar' || key === 'keyboard') ? 2 : 1;
+                for (let i = 0; i < numSlots; i++) {
+                    if (team.pinnedSlots?.[key]?.[i] && team.members[key][i]) {
+                        const memberName = team.members[key][i];
+                        if (gigCounts[memberName] !== undefined) gigCounts[memberName]++;
+                    } else {
+                        team.members[key][i] = undefined;
+                    }
+                }
+                team.members[key] = team.members[key].filter(Boolean);
+            });
+        }
+    });
+
     const findBestCandidate = (sessionKey, excludedNames = []) => {
-      const candidates = allUsers.filter(p => p.sessions.includes(sessionKey) && !excludedNames.includes(p.name));
+      const candidates = validParticipants.filter(p => p.sessions.includes(sessionKey) && !excludedNames.includes(p.name));
       if (candidates.length === 0) return null;
       const minGigs = Math.min(...candidates.map(c => gigCounts[c.name]));
       const bestCandidates = candidates.filter(c => gigCounts[c.name] === minGigs);
       return bestCandidates[Math.floor(Math.random() * bestCandidates.length)];
     };
-    SESSION_KEYS.forEach(key => { for (const team of autoGeneratedTeams) { const candidate = findBestCandidate(key); if (candidate) { team.members[key][0] = candidate.name; gigCounts[candidate.name]++; } } });
-    ['guitar', 'keyboard'].forEach(key => { for (const team of autoGeneratedTeams) { const personInFirstSlot = team.members[key][0]; const candidate = findBestCandidate(key, [personInFirstSlot]); if (candidate) { team.members[key][1] = candidate.name; gigCounts[candidate.name]++; } } });
-    await setDoc(teamSessionDocRef, { teams: [...pinnedTeams, ...autoGeneratedTeams], teamCount: teamCount });
+    
+    newTeams.forEach(team => {
+        if (team.isPinned) return;
+        SESSION_KEYS.forEach(key => {
+            const numSlots = (key === 'guitar' || key === 'keyboard') ? 2 : 1;
+            for (let i = 0; i < numSlots; i++) {
+                if (!team.members[key][i]) {
+                    const excluded = Object.values(team.members).flat();
+                    const candidate = findBestCandidate(key, excluded);
+                    if (candidate) {
+                        team.members[key][i] = candidate.name;
+                        gigCounts[candidate.name]++;
+                    }
+                }
+            }
+        });
+    });
+
+    await setDoc(teamSessionDocRef, { teams: newTeams, teamCount });
+  };
+
+  const handleTeamNameChange = async (teamId, newName) => {
+    const updatedTeams = generatedTeams.map(team => 
+      team.id === teamId ? { ...team, name: newName } : team
+    );
+    await updateDoc(teamSessionDocRef, { teams: updatedTeams });
+  };
+
+  const handlePositionPinToggle = async (teamId, sessionKey, slotIndex) => {
+    const updatedTeams = generatedTeams.map(team => {
+      if (team.id === teamId) {
+        const newPinnedSlots = JSON.parse(JSON.stringify(team.pinnedSlots || {}));
+        if (!newPinnedSlots[sessionKey]) {
+            newPinnedSlots[sessionKey] = (sessionKey === 'guitar' || sessionKey === 'keyboard') ? [false, false] : [false];
+        }
+        newPinnedSlots[sessionKey][slotIndex] = !newPinnedSlots[sessionKey][slotIndex];
+        return { ...team, pinnedSlots: newPinnedSlots };
+      }
+      return team;
+    });
+    await updateDoc(teamSessionDocRef, { teams: updatedTeams });
   };
 
   const handleTeamChange = async (teamId, sessionKey, slotIndex, newName) => {
     const updatedTeams = generatedTeams.map(team => {
       if (team.id === teamId) {
-        const newMembers = [...team.members[sessionKey]]; newMembers[slotIndex] = newName;
+        const newMembers = [...(team.members[sessionKey] || [])]; 
+        newMembers[slotIndex] = newName;
         const cleanedMembers = newMembers.filter(name => name);
         return { ...team, members: { ...team.members, [sessionKey]: cleanedMembers } };
       }
@@ -296,7 +405,7 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg" sx={{ my: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h4" component="h1">마테시스 파이팅</Typography>
+          <Typography variant="h4" component="h1">마테시스 합주 앱</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
             {currentUser.role === 'admin' && <Chip label="Admin" color="success" size="small" />}
             <Button startIcon={<LogoutIcon />} onClick={handleLogout} size="small">로그아웃</Button>
@@ -321,12 +430,20 @@ function App() {
           
           {currentTab === 0 && (
             <Box p={3}>
+              {/* --- ▼▼▼▼▼ 수정된 UI ▼▼▼▼▼ --- */}
               <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" gutterBottom>참여자 목록 ({allUsers.length}명)</Typography>
+                <Typography variant="h6" gutterBottom>참여자 현황 ({allUsers.length}명)</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {allUsers.map(user => <Chip key={user.id} label={user.name} color={user.role === 'admin' ? 'success' : 'default'} />)}
+                  {allUsers.map(user => {
+                    const participationCount = teamParticipationCounts[user.name];
+                    const label = generatedTeams && participationCount !== undefined 
+                      ? `${user.name} (${participationCount}팀)` 
+                      : user.name;
+                    return <Chip key={user.id} label={label} color={user.role === 'admin' ? 'success' : 'default'} />;
+                  })}
                 </Box>
               </Paper>
+              {/* --- ▲▲▲▲▲ 수정된 UI ▲▲▲▲▲ --- */}
 
               {currentUser.role === 'admin' && (
                 <Paper elevation={3} sx={{ p: 3, mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -341,7 +458,16 @@ function App() {
                   <Grid container spacing={2}>
                     {generatedTeams.map((team, index) => (
                       <Grid item xs={12} sm={6} md={4} key={team.id}>
-                        <EditableTeamCard team={team} teamIndex={index} participants={allUsers} onTeamChange={handleTeamChange} onPinToggle={handlePinToggle} isAdmin={currentUser.role === 'admin'} />
+                        <EditableTeamCard 
+                          team={team} 
+                          teamIndex={index} 
+                          participants={allUsers} 
+                          onTeamChange={handleTeamChange} 
+                          onPinToggle={handlePinToggle} 
+                          isAdmin={currentUser.role === 'admin'}
+                          onTeamNameChange={handleTeamNameChange}
+                          onPositionPinToggle={handlePositionPinToggle}
+                        />
                       </Grid>
                     ))}
                   </Grid>
@@ -365,7 +491,6 @@ function App() {
                   <Typography variant="h6" gutterBottom>투표 현황</Typography>
                   <Chip label={`내 투표 수: ${userVoteCount} / ${VOTE_LIMIT}`} color={userVoteCount >= VOTE_LIMIT ? "error" : "primary"} />
                 </Box>
-                {/* --- ▼▼▼▼▼ 신규 UI ▼▼▼▼▼ --- */}
                 <Typography variant="body2" color="text.secondary" sx={{mt: 2, mb: 1}}>전체 회원 투표 현황</Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                     {allUsers.map(user => {
@@ -388,7 +513,6 @@ function App() {
                     })}
                 </Box>
                 <Divider sx={{mb: 2}} />
-                {/* --- ▲▲▲▲▲ 신규 UI ▲▲▲▲▲ --- */}
                 <List>
                   {songs.map((song) => {
                     const hasVoted = song.voters.includes(currentUser.name);
