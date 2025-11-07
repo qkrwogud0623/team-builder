@@ -1,0 +1,88 @@
+/**
+ * @file datepicker.css
+ * @description react-datepicker 라이브러리의 스타일을 앱 디자인에 맞게 오버라이드합니다.
+ * 이 파일은 여러 컴포넌트에서 공용으로 사용될 수 있으므로 /styles 폴더에 위치합니다.
+ */
+
+/* DatePicker는 z-index가 매우 중요합니다.
+  모달(z-index: 1000) 안에서도 DatePicker가 위에 보여야 하므로, 더 높은 값을 부여합니다.
+  !important를 사용하는 이유는 라이브러리의 기본 스타일을 확실하게 덮어쓰기 위함입니다.
+*/
+.react-datepicker-popper {
+  z-index: 1100 !important;
+}
+
+/* 달력과 팝업 사이의 간격 */
+.react-datepicker-popper[data-popper-placement^="bottom"] {
+  margin-top: 8px !important;
+}
+
+/* 전체적인 팝업 모양 */
+.react-datepicker {
+  font-family: inherit !important; /* 앱의 기본 폰트(Pretendard)를 따르도록 설정 */
+  background-color: #ffffff !important;
+  border: 1px solid var(--toss-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden !important;
+}
+
+/* 팝업 위쪽의 작은 화살표 삼각형 제거 */
+.react-datepicker__triangle {
+  display: none !important;
+}
+
+/* '2023년 10월' 헤더 부분 */
+.react-datepicker__header {
+  background-color: white !important;
+  border-bottom: 1px solid var(--toss-border) !important;
+}
+.react-datepicker__current-month {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+/* '일, 월, 화...' 요일 이름 및 날짜 숫자 스타일 */
+.react-datepicker__day-name,
+.react-datepicker__day {
+  width: 2.2rem !important;
+  line-height: 2.2rem !important;
+  margin: 0.2rem !important;
+}
+
+/* 날짜에 마우스를 올렸을 때 */
+.react-datepicker__day:hover {
+  background-color: var(--toss-bg-subtle) !important;
+  border-radius: 50% !important; /* 동그란 모양으로 변경 */
+}
+
+/* 선택된 날짜 */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--toss-primary) !important;
+  color: white !important;
+  border-radius: 50% !important;
+}
+
+/* 이전/다음 달의 희미한 날짜 */
+.react-datepicker__day--outside-month {
+  color: var(--toss-muted) !important;
+  opacity: 0.6;
+}
+
+/* --- 시간 선택창 스타일 --- */
+
+/* '시간' 헤더 */
+.react-datepicker-time__header {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--toss-text-secondary) !important;
+}
+
+/* 시간 목록 (09:00 등) */
+.react-datepicker__time-list-item {
+  font-size: 16px !important;
+  font-weight: 600;
+  padding: 8px 12px !important; /* 클릭 영역 확보 */
+}
+

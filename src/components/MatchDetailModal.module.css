@@ -1,0 +1,95 @@
+/**
+ * @file MatchDetailModal.module.css
+ * @description MatchDetailModal 컴포넌트 전용 스타일시트입니다.
+ */
+
+/* --- 1. 경기 정보 및 내 활동 --- */
+.matchInfo {
+    font-size: 15px;
+    color: var(--toss-text-secondary);
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--toss-border);
+  }
+  .myActions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .myActions button {
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--toss-border);
+    background: #fff;
+    font-weight: 700;
+    font-size: 16px;
+    transition: all .2s ease;
+  }
+  .myActions button:hover {
+    background: var(--toss-bg-hover);
+  }
+  .myActions button.active {
+    background: var(--toss-primary);
+    border-color: var(--toss-primary);
+    color: #fff;
+  }
+  .myActions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* --- 2. 참석 현황 요약 --- */
+  .summary {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--toss-muted);
+    margin-top: 16px;
+  }
+  
+  /* --- 3. 참석자 목록 --- */
+  .attendanceList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 12px;
+    border: 1px solid var(--toss-border);
+    border-radius: 10px;
+  }
+  .attendanceRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--toss-border);
+  }
+  .attendanceRow:last-child {
+    border-bottom: none;
+  }
+  .name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .role {
+    font-size: 13px;
+    color: var(--toss-muted);
+    margin-top: 2px;
+  }
+  
+  /* --- 4. 뱃지 (Badge) --- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .badgeYes { background:#e8f2ff; color:#2563eb; }
+  .badgeNo { background:#fee2e2; color:#b91c1c; }
+  .badgeMaybe { background:#fef3c7; color:#92400e; }
+  .badgeNone { background:#f3f4f6; color:#6b7280; }
+  
