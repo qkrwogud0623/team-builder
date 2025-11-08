@@ -1,36 +1,154 @@
-/**
- * @file PostMatchSurveyModal.module.css
- * @description PostMatchSurveyModal 컴포넌트 전용 스타일시트입니다.
+/*
+ * PostMatchSurveyModal.module.css (Toss 스타일 수정본)
+ * - TeamJoinPage.module.css의 라이트 모드 테마를 기반으로 재작성되었습니다.
+ * - var(--toss-...) 변수를 사용합니다.
  */
 
- .description {
-    font-size: 15px;
-    line-height: 1.6;
-    color: var(--toss-text-secondary);
-  }
-  
-  .voteSection {
-    margin-top: 20px;
-  }
-  
-  .label {
-    display: block;
-    font-size: 14px;
-    color: var(--toss-text-primary);
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-  
-  .dropdownGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  
-  /* --- 반응형 --- */
-  @media (max-width: 480px) {
-    .dropdownGrid {
-      grid-template-columns: 1fr;
-    }
-  }
-  
+.overlay {
+  position: fixed;
+  inset: 0; /* top, left, right, bottom */
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background-color: #fff; /* 흰색 배경 */
+  color: var(--toss-text-primary);
+  border-radius: 16px; /* 모달은 좀 더 둥글게 */
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modalHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--toss-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 22px; /* .title보다 약간 작게 */
+  font-weight: 700;
+  color: var(--toss-text-primary);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--toss-text-secondary);
+  font-size: 26px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.closeButton:disabled {
+  opacity: 0.5;
+}
+
+.form {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* 각 항목 사이 간격 */
+}
+
+.description {
+  font-size: 15px;
+  color: var(--toss-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+  background: var(--toss-bg-subtle);
+  padding: 16px;
+  border-radius: var(--radius-md);
+}
+.description strong {
+  color: var(--toss-primary);
+  font-weight: 600;
+}
+
+.questionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.questionBlock label {
+  font-size: 18px; /* 입력창 라벨 */
+  font-weight: 600;
+  color: var(--toss-text-primary);
+}
+
+/* select 요소를 .input 스타일과 동일하게 맞춤 */
+.questionBlock select {
+  width: 100%;
+  height: 52px; /* .button과 동일한 높이 */
+  padding: 0 16px;
+  border: 1px solid var(--toss-border);
+  border-radius: var(--radius-md);
+  background-color: var(--toss-bg-subtle);
+  color: var(--toss-text-primary);
+  font-size: 16px;
+  outline: none;
+  appearance: none; /* 기본 화살표 제거 */
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+
+  /* 커스텀 화살표 (선택) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px; /* 화살표 공간 확보 */
+}
+
+.questionBlock select:focus {
+  border-color: var(--toss-primary);
+}
+
+/* .errorMessage 스타일과 동일하게 맞춤 */
+.error {
+  color: #d93025;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+  min-height: 1.2em;
+}
+
+/* .button 스타일과 동일하게 맞춤 */
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: bold;
+  background-color: var(--toss-primary);
+  color: white;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.submitButton:hover {
+  background-color: var(--toss-primary-press);
+}
+
+.submitButton:disabled {
+  background-color: var(--toss-muted);
+  cursor: not-allowed;
+}

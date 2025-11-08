@@ -65,6 +65,26 @@
     height: 36px;
     border-radius: 10px;
     margin-left: auto;
+    /* [추가] 부드러운 모션을 위해 transition을 추가합니다. */
+    transition: all 0.15s ease-out;
+    cursor: pointer;
+  }
+
+  /* [추가] 마우스를 올렸을 때 (Hover) */
+  .shuffleButton:hover {
+      background-color: var(--toss-bg-subtle, #f7f7f7);
+      border-color: var(--toss-text-secondary, #b0b8c1);
+  }
+
+  /* [추가] 클릭(press)했을 때 (Active) */
+  .shuffleButton:active {
+      /* 1. 살짝 작아지는 '눌리는' 모션 */
+      transform: scale(0.96); 
+      
+      /* 2. 탭과 동일한 활성 색상으로 변경 */
+      background-color: #e8f2ff;
+      border-color: #a8c9f5;
+      color: var(--toss-primary);
   }
   
   .readOnlyFormation {

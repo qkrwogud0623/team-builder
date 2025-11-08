@@ -1,9 +1,9 @@
 /**
  * @file SquadModal.jsx
  * @description 경기 스쿼드 관리 및 팀 밸런싱을 위한 모달 컴포넌트
- * [수정]
- * - squadLogic.js의 import 경로 오류를 수정했습니다.
- * - handleShuffle 로직을 명확하게 변경했습니다.
+ * [레전드 수정]
+ * - 'avgOvr is not defined' 에러 해결 (avgOvr 정의를 상단으로 이동)
+ * - handleShuffle 로직 수정 (squadLogic.js의 랜덤 로직을 신뢰하고, setSquad를 직접 호출)
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,6 +15,7 @@ import styles from './SquadModal.module.css';
 import modalStyles from './CreateMatchModal.module.css';
 
 // --- 하위 컴포넌트들 (변경 없음) ---
+// (SquadHeader, TeamPane, AttendeePane 코드는 이전과 동일하므로 생략)
 const SquadHeader = ({ match, page, setPage, formation, onFormationChange, onShuffle, onSave, onClose, avgOvr, canManage }) => {
   const whenStr = match?.when?.toDate
     ? new Intl.DateTimeFormat('ko-KR', {
@@ -37,7 +38,6 @@ const SquadHeader = ({ match, page, setPage, formation, onFormationChange, onShu
         <button onClick={() => setPage(2)} className={page === 2 ? styles.activeTab : ''}>참가명단</button>
       </div>
 
-      {/* [수정] 아래 블록 전체를 page가 2가 아닐 때만 렌더링하도록 변경 */}
       {page !== 2 && (
         <>
           <div className={styles.controls}>
@@ -71,7 +71,7 @@ const TeamPane = ({ title, teamLabel, slots, bench, attendeesMap, pins, canManag
     <div className={styles.pane}>
         <div className={styles.paneHeader}>
             <span>{title}</span>
-            <span>평균 {logic.getAverageOvr(slots.map(s => s.uid).filter(Boolean), attendeesMap)}</span>
+            {/* OVR 중복 표시 제거 */}
         </div>
         <div className={styles.slotList}>
             {slots.map((s, idx) => {
@@ -167,6 +167,22 @@ export const SquadModal = ({ open, onClose, teamId, match, attendees = [], canMa
 
     const attendeesMap = useMemo(() => new Map(attendees.map(p => [p.uid, p])), [attendees]);
 
+    // [수정] 스쿼드 상태가 변경될 때마다(예: 셔플) OVR을 다시 계산하기 위해 useMemo 사용
+    const { avgOvr, currentSquad } = useMemo(() => {
+        // squad가 비어있으면(초기 상태) 기본값 반환
+        if (!squad || !squad.teams) {
+            return { avgOvr: { A: 0, B: 0 }, currentSquad: squad };
+        }
+        
+        const { teams } = squad;
+        const newAvgOvr = {
+            A: logic.getAverageOvr(teams.A, attendeesMap),
+            B: logic.getAverageOvr(teams.B, attendeesMap)
+        };
+        return { avgOvr: newAvgOvr, currentSquad: squad };
+
+    }, [squad, attendeesMap]); // squad 상태가 바뀔 때마다 재계산
+
     useEffect(() => {
         if (!open || !teamId || !match) return;
         
@@ -179,22 +195,32 @@ export const SquadModal = ({ open, onClose, teamId, match, attendees = [], canMa
                     setFormationA(data.formationA || '4-3-3');
                     setFormationB(data.formationB || '4-3-3');
                     setPins(data.pins || {});
+                    
+                    // [수정] 저장된 스쿼드(data)가 있으면 그것을 초기 스쿼드로 설정
+                    setSquad(data);
                 } else {
+                    // [수정] 저장된 스쿼드가 없으면, 현재 정보로 새로 빌드
                     setFormationA('4-3-3');
                     setFormationB('4-3-3');
                     setPins({});
+                    setSquad(logic.buildSquad(attendees, {}, '4-3-3', '4-3-3'));
                 }
             } catch (e) {
                 console.error("스쿼드 로드 실패:", e);
             }
         };
         loadSquad();
-    }, [open, teamId, match, attendees.length]);
+    }, [open, teamId, match, attendees.length]); // attendeesMap 제거 (attendees.length로 충분)
 
+    // [수정] 이 useEffect는 포메이션이나 핀이 바뀔 때만 스쿼드를 재계산
     useEffect(() => {
         if (!open || attendees.length === 0) return;
+        
+        // loadSquad가 이미 초기 스쿼드를 설정하므로, 
+        // 핀이나 포메이션이 '사용자에 의해' 변경되었을 때만 재빌드합니다.
         setSquad(logic.buildSquad(attendees, pins, formationA, formationB));
-    }, [attendees, pins, formationA, formationB, open]);
+
+    }, [pins, formationA, formationB]); // [수정] attendees, open 의존성 제거
 
     const handleFormationChange = (newFormation, teamLabel) => {
         if (teamLabel === 'A') setFormationA(newFormation);
@@ -205,7 +231,7 @@ export const SquadModal = ({ open, onClose, teamId, match, attendees = [], canMa
         if (!teamId || !match || !canManage) return;
         try {
             await setDoc(doc(db, 'teams', teamId, 'matches', match.id, 'meta', 'squad'), {
-                ...squad,
+                ...currentSquad, // [수정] useMemo로 계산된 최신 스쿼드(currentSquad) 사용
                 formationA,
                 formationB,
                 pins,
@@ -220,21 +246,21 @@ export const SquadModal = ({ open, onClose, teamId, match, attendees = [], canMa
         }
     };
 
-    // [수정] 랜덤 편성 버튼은 모든 '핀'을 초기화하여 팀을 재분배하도록 합니다.
+    // [레전드 수정] handleShuffle
+    // 이 함수는 'squadLogic.js'의 랜덤 로직을 실행시키는 역할만 합니다.
     const handleShuffle = () => {
-      // buildSquad를 직접 호출하여 새로운 랜덤 조합을 생성합니다.
-      const newSquad = logic.buildSquad(attendees, pins, formationA, formationB);
-      setSquad(newSquad);
+        // [수정] attendees를 섞을 필요가 없습니다. 
+        // squadLogic.js의 splitTeamsDeterministic가 이미 랜덤 셔플을 수행합니다.
+        // 핀(pins)은 그대로 둔 채, buildSquad를 다시 호출하여
+        // squadLogic 내부의 랜덤 로직이 다시 실행되도록 합니다.
+        const newSquad = logic.buildSquad(attendees, pins, formationA, formationB);
+        
+        // 새로 생성된 스쿼드로 상태를 업데이트합니다.
+        // 이 state 업데이트는 'avgOvr'을 재계산하는 useMemo를 자동으로 트리거합니다.
+        setSquad(newSquad);
     };
 
     if (!open || !match) return null;
-    
-    const { teams } = squad;
-
-    const avgOvr = {
-        A: logic.getAverageOvr(teams.A, attendeesMap),
-        B: logic.getAverageOvr(teams.B, attendeesMap)
-    };
 
     return createPortal(
         <div className={modalStyles.overlay} onMouseDown={onClose}>
@@ -248,12 +274,13 @@ export const SquadModal = ({ open, onClose, teamId, match, attendees = [], canMa
                     onShuffle={handleShuffle}
                     onSave={handleSave}
                     onClose={onClose}
-                    avgOvr={avgOvr}
+                    avgOvr={avgOvr} // [수정] useMemo로 계산된 avgOvr
                     canManage={canManage}
                 />
                 <div className={modalStyles.body} style={{ overflowY: 'auto', flex: 1 }}>
-                    {squad.slots && page === 0 && <TeamPane title="1팀" teamLabel="A" slots={squad.slots.A} bench={squad.bench.A} attendeesMap={attendeesMap} pins={pins} canManage={canManage} onPin={(uid, team) => setPins(p => ({...p, [uid]: team}))} onUnpin={uid => setPins(p => { const n = {...p}; delete n[uid]; return n; })} />}
-                    {squad.slots && page === 1 && <TeamPane title="2팀" teamLabel="B" slots={squad.slots.B} bench={squad.bench.B} attendeesMap={attendeesMap} pins={pins} canManage={canManage} onPin={(uid, team) => setPins(p => ({...p, [uid]: team}))} onUnpin={uid => setPins(p => { const n = {...p}; delete n[uid]; return n; })} />}
+                    {/* [수정] currentSquad에서 slots와 bench를 가져옵니다. */}
+                    {currentSquad.slots && page === 0 && <TeamPane title="1팀" teamLabel="A" slots={currentSquad.slots.A} bench={currentSquad.bench.A} attendeesMap={attendeesMap} pins={pins} canManage={canManage} onPin={(uid, team) => setPins(p => ({...p, [uid]: team}))} onUnpin={uid => setPins(p => { const n = {...p}; delete n[uid]; return n; })} />}
+                    {currentSquad.slots && page === 1 && <TeamPane title="2팀" teamLabel="B" slots={currentSquad.slots.B} bench={currentSquad.bench.B} attendeesMap={attendeesMap} pins={pins} canManage={canManage} onPin={(uid, team) => setPins(p => ({...p, [uid]: team}))} onUnpin={uid => setPins(p => { const n = {...p}; delete n[uid]; return n; })} />}
                     {page === 2 && <AttendeePane attendees={attendees} />}
                 </div>
                 

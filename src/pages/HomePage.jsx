@@ -1,20 +1,20 @@
 /**
  * @file HomePage.jsx
  * @description
- * 로그인 후 사용자가 보게 되는 메인 화면입니다. (기존 MainScreen.jsx)
- * [개선] 사용자의 프로필 상태에 따라 '대표 선수 선택' 또는 '프로필' 화면을 렌더링합니다.
- * [개선] 경기 후 설문조사 로직을 최적화하고, 확인 모달 UX를 개선했습니다.
+ * [레전드 수정]
+ * - '경기 후 설문조사' 로직이 'attendees' 목록을 불러오지 못하던 치명적 오류를 수정했습니다.
+ * - surveyMatch state를 surveyData ({ match, attendees }) 객체로 변경하여 모달에 데이터를 올바르게 전달합니다.
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { updateDoc, setDoc, doc, deleteField, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { updateDoc, setDoc, doc, deleteField, collection, query, where, getDocs, getDoc, limit } from "firebase/firestore"; // [수정] getDoc 추가
 import { auth, db } from '../firebase';
 
 // 하위 컴포넌트 및 스타일
 import { PostMatchSurveyModal } from '../components/PostMatchSurveyModal';
-import ConfirmModal from '../components/ConfirmModal'; // 새로 만든 확인 모달 import
+import ConfirmModal from '../components/ConfirmModal';
 import styles from './HomePage.module.css';
 
 // --- 하위 UI 컴포넌트 (변경 없음) ---
@@ -63,9 +63,11 @@ const UserProfile = ({ profile, myOvr, onLogout, onRedoSurvey }) => {
                     </div>
                 </div>
                 <div className={styles.statsGrid}>
-                    {profile.stats && Object.entries(profile.stats).map(([stat, value]) => (
+                    {profile.stats && 
+                      ['DRI', 'PAC', 'PAS', 'PHY', 'SHO', 'DEF'].map((stat) => (
                         <div key={stat} className={styles.statItem}>
-                            <span className={styles.statValue}>{value}</span>
+                            {/* 배열의 'stat' 이름(key)을 사용해 객체(profile.stats)에서 값을 찾음 */}
+                            <span className={styles.statValue}>{profile.stats[stat] || 60}</span>
                             <span className={styles.statName}>{stat.toUpperCase()}</span>
                         </div>
                     ))}
@@ -100,8 +102,9 @@ const UserProfile = ({ profile, myOvr, onLogout, onRedoSurvey }) => {
 
 function HomePage({ userProfile }) {
     const navigate = useNavigate();
-    const [surveyMatch, setSurveyMatch] = useState(null);
-    const [isRedoModalOpen, setRedoModalOpen] = useState(false); // [개선] 설문 다시하기 모달 상태
+    // [레전드 수정] surveyMatch -> surveyData로 변경. { match, attendees } 객체를 저장.
+    const [surveyData, setSurveyData] = useState(null);
+    const [isRedoModalOpen, setRedoModalOpen] = useState(false);
 
     // 1. OVR 계산 (useMemo로 최적화)
     const myOvr = useMemo(() => {
@@ -114,7 +117,7 @@ function HomePage({ userProfile }) {
         return 60; // 기본값
     }, [userProfile]);
 
-    // 2. 프로필 불완전 시 설문 페이지로 리디렉션
+    // 2. 프로필 불완전 시 설문 페이지로 리디렉션 (변경 없음)
     useEffect(() => {
         if (!userProfile) return;
         const hasSelectedPlayer = !!userProfile.selectedPlayer;
@@ -124,37 +127,71 @@ function HomePage({ userProfile }) {
         }
     }, [userProfile, navigate]);
 
-    // 3. [개선] 경기 후 설문조사 확인 로직 최적화
+    // 3. [레전드 수정] 경기 후 설문조사 확인 (attendees 로직 추가)
     useEffect(() => {
         const checkForPendingSurveys = async () => {
             const uid = auth.currentUser?.uid;
             const teamId = userProfile?.teamId;
             if (!uid || !teamId) return;
 
-            // matches 컬렉션의 pendingSurveyParticipants 필드에 내 uid가 포함된 문서를 쿼리
-            // 이렇게 하면 단 1번의 읽기 작업으로 필요한 경기를 찾을 수 있습니다.
+            // 1. 내 팀의 경기 중, "완료" 상태이고 "설문 대기자"에 내가 포함된 경기를 찾음
             const matchesRef = collection(db, 'teams', teamId, 'matches');
             const q = query(
                 matchesRef,
                 where("pendingSurveyParticipants", "array-contains", uid),
-                limit(1) // 가장 오래된 설문 1개만 가져옴
+                limit(1)
             );
 
             const matchesSnapshot = await getDocs(q);
 
             if (!matchesSnapshot.empty) {
                 const matchDoc = matchesSnapshot.docs[0];
-                setSurveyMatch({ id: matchDoc.id, ...matchDoc.data() });
+                const pendingMatch = { id: matchDoc.id, ...matchDoc.data() };
+
+                // 2. [추가] 내가 이미 설문을 제출했는지 한 번 더 확인 (중복 방지)
+                const surveyDocRef = doc(db, 'teams', teamId, 'matches', pendingMatch.id, 'surveys', uid);
+                const surveySnap = await getDoc(surveyDocRef);
+
+                // 3. 설문 제출 기록이 "없으면" 모달을 띄움
+                if (!surveySnap.exists()) {
+                    
+                    // 4. [핵심] 모달에 넘겨줄 '참석자 목록(attendees)'을 만듦
+                    const attRef = collection(db, 'teams', teamId, 'matches', pendingMatch.id, 'attendance');
+                    const qYes = query(attRef, where("status", "==", "yes"));
+                    const attSnap = await getDocs(qYes);
+                    const yesUids = attSnap.docs.map(d => d.id);
+
+                    if (yesUids.length === 0) return; // (이론상 발생 안함)
+
+                    const userDocs = await Promise.all(yesUids.map(id => getDoc(doc(db, 'users', id))));
+                    
+                    const attendees = userDocs.map(userSnap => {
+                        if (!userSnap.exists()) return null;
+                        const u = userSnap.data();
+                        
+                        // OVR 계산 로직 (TeamPage와 동일하게)
+                        let ovr = 60;
+                        if (typeof u.playerOvr === 'number') ovr = u.playerOvr;
+                        else if (u.stats) {
+                            const vals = Object.values(u.stats).filter(v => typeof v === 'number');
+                            if (vals.length > 0) ovr = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                        }
+                        return { uid: userSnap.id, name: u.realName, pos: u.position || 'CM', ovr: ovr };
+                    }).filter(Boolean);
+
+                    // 5. [수정] match와 attendees를 함께 state에 저장
+                    setSurveyData({ match: pendingMatch, attendees: attendees });
+                }
             }
         };
 
         if (userProfile?.teamId) {
             checkForPendingSurveys();
         }
-    }, [userProfile]);
+    }, [userProfile]); // userProfile이 로드되거나 변경될 때 1회 실행
 
 
-    // --- 이벤트 핸들러 ---
+    // --- 이벤트 핸들러 (변경 없음) ---
     const handleLogout = () => {
         signOut(auth).catch(error => console.error("Logout Error:", error));
     };
@@ -178,10 +215,9 @@ function HomePage({ userProfile }) {
             alert("선수 선택 중 오류가 발생했습니다.");
         }
     };
-
-    // [개선] 설문 다시하기 로직 (모달 사용)
+ 
     const handleConfirmRedoSurvey = async () => {
-        setRedoModalOpen(false); // 모달 닫기
+        setRedoModalOpen(false);
         const user = auth.currentUser;
         if (!user) return;
 
@@ -207,17 +243,18 @@ function HomePage({ userProfile }) {
 
     return (
         <>
-            {/* 경기 후 설문 모달 */}
-            {surveyMatch && (
+            {/* [레전드 수정] surveyData state를 사용하도록 변경 */}
+            {surveyData && (
                 <PostMatchSurveyModal
                     teamId={userProfile.teamId}
-                    match={surveyMatch}
+                    match={surveyData.match}
+                    attendees={surveyData.attendees} /* [핵심] attendees 전달 */
                     userProfile={userProfile}
-                    onClose={() => setSurveyMatch(null)}
+                    onClose={() => setSurveyData(null)} /* [수정] setSurveyData로 변경 */
                 />
             )}
 
-            {/* [개선] 설문 다시하기 확인 모달 */}
+            {/* [개선] 설문 다시하기 확인 모달 (변경 없음) */}
             {isRedoModalOpen && (
                 <ConfirmModal
                     title="설문조사 다시하기"
@@ -227,13 +264,13 @@ function HomePage({ userProfile }) {
                 />
             )}
 
-            {/* 메인 컨텐츠 */}
+            {/* 메인 컨텐츠 (변경 없음) */}
             {userProfile.selectedPlayer ? (
                 <UserProfile
                     profile={userProfile}
                     myOvr={myOvr}
                     onLogout={handleLogout}
-                    onRedoSurvey={() => setRedoModalOpen(true)} // 버튼 클릭 시 모달 열기
+                    onRedoSurvey={() => setRedoModalOpen(true)}
                 />
             ) : (
                 <PlayerSelection

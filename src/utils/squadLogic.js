@@ -57,12 +57,15 @@ const pickStarters = (teamIds, attendeesMap, needed) => {
   return { starters, bench };
 };
 
+// [수정] assignSlots 함수 전체를 교체하세요.
 const assignSlots = (starterIds, slotPositions, attendeesMap) => {
   let availablePlayers = new Set(starterIds);
   const slots = slotPositions.map(pos => ({ slot: pos, uid: null }));
   const getOvr = (uid) => attendeesMap.get(uid)?.ovr || 0;
   const getBasePos = (uid) => basePosOf(attendeesMap.get(uid)?.pos);
 
+  // 1. 1순위 배정: 자기 포지션이 일치하는 선수 우선 배정 (OVR 높은 순)
+  // (이 로직은 "자기포지션을 1순위로" 요구사항을 충족하므로 변경 없음)
   slots.forEach(slot => {
       const candidates = [...availablePlayers].filter(uid => getBasePos(uid) === slot.slot);
       if (candidates.length > 0) {
@@ -72,27 +75,30 @@ const assignSlots = (starterIds, slotPositions, attendeesMap) => {
       }
   });
 
+  // [수정] 2순위 배정: 남은 선수를 남은 슬롯에 "랜덤" 배정
+  // "가장 점수 좋은 선수" (minScore) 로직 대신,
+  // "유효한 후보 중 랜덤"으로 변경합니다.
   slots.forEach(slot => {
+      // 이미 배정되었거나, 남은 선수가 없으면 건너뛰기
       if (slot.uid || availablePlayers.size === 0) return;
       
-      let bestPick = null;
-      let minScore = Infinity;
+      // 1. 이 슬롯에 들어갈 수 있는 "유효한" 후보만 필터링
+      // (예: GK가 아닌 슬롯에 GK가 들어가는 것 방지)
+      const validCandidates = [...availablePlayers].filter(uid => 
+          isFinite(getPositionCost(slot.slot, getBasePos(uid)))
+      );
 
-      availablePlayers.forEach(uid => {
-          const cost = getPositionCost(slot.slot, getBasePos(uid));
-          if (!isFinite(cost)) return;
-          
-          const score = cost * 100 - getOvr(uid); 
-          if (score < minScore) {
-              minScore = score;
-              bestPick = uid;
-          }
-      });
+      // 2. 유효한 후보가 있다면
+      if (validCandidates.length > 0) {
+          // 3. 후보 중에서 "랜덤"으로 1명 선택
+          const randomIndex = Math.floor(Math.random() * validCandidates.length);
+          const randomPick = validCandidates[randomIndex];
 
-      if (bestPick) {
-          slot.uid = bestPick;
-          availablePlayers.delete(bestPick);
+          // 4. 배정 및 'availablePlayers'에서 제거
+          slot.uid = randomPick;
+          availablePlayers.delete(randomPick);
       }
+      // 5. 유효한 후보가 없으면 (e.g., GK가 없는데 GK슬롯만 남음) 슬롯은 비워둠
   });
 
   return slots;
