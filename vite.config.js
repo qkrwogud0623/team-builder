@@ -1,8 +1,8 @@
-// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/', // [!!!] 이게 꼭 있어야 합니다 [!!!]
+  base: '/team-builder/', // [!!!] 이게 제일 중요합니다 [!!!]
 })
