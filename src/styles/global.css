@@ -7,7 +7,6 @@
 
 /* --- 1. 폰트 및 디자인 시스템 (전역 변수) --- */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-
 :root {
   /* Colors */
   --toss-primary: #3182f6;
