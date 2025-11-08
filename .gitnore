@@ -1,0 +1,11 @@
+# 로컬 환경 변수 파일
+.env
+
+# Firebase Admin SDK 키 파일
+admin-key.json
+
+# Node.js 의존성 폴더 (용량이 매우 크고 불필요)
+/node_modules
+
+# Vite 캐시 폴더
+/node_modules/.vite
