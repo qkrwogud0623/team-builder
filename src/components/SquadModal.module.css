@@ -8,215 +8,213 @@
 
 /* --- 기본 모달 구조 --- */
 .squadHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .headerTop {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .matchInfo {
-    font-size: 13px;
-    color: var(--toss-muted);
-  }
-  
-  .tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    width: 100%;
-  }
-  
-  .tabs button {
-    border: 1px solid var(--toss-border);
-    background-color: var(--toss-bg-subtle);
-    color: var(--toss-text-secondary);
-    font-weight: 700;
-    padding: 0 14px;
-    height: 38px;
-    border-radius: 10px;
-    transition: all .2s ease;
-  }
-  
-  .tabs button.activeTab {
-    background-color: #e8f2ff;
-    color: var(--toss-primary);
-    border-color: #a8c9f5;
-  }
-  
-  .controls {
-    width: 100%;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  
-  .shuffleButton {
-    background-color: #fff;
-    border: 1px solid var(--toss-border);
-    color: var(--toss-text-primary);
-    font-weight: 700;
-    padding: 0 14px;
-    height: 36px;
-    border-radius: 10px;
-    margin-left: auto;
-    /* [추가] 부드러운 모션을 위해 transition을 추가합니다. */
-    transition: all 0.15s ease-out;
-    cursor: pointer;
-  }
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
 
-  /* [추가] 마우스를 올렸을 때 (Hover) */
-  .shuffleButton:hover {
-      background-color: var(--toss-bg-subtle, #f7f7f7);
-      border-color: var(--toss-text-secondary, #b0b8c1);
-  }
+.headerTop {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  /* [추가] 클릭(press)했을 때 (Active) */
-  .shuffleButton:active {
-      /* 1. 살짝 작아지는 '눌리는' 모션 */
-      transform: scale(0.96); 
-      
-      /* 2. 탭과 동일한 활성 색상으로 변경 */
-      background-color: #e8f2ff;
-      border-color: #a8c9f5;
-      color: var(--toss-primary);
-  }
-  
-  .readOnlyFormation {
-    width: 100%;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    border-radius: 10px;
-    border: 1px solid var(--toss-border);
-    background: var(--toss-bg-subtle);
-    font-weight: 700;
-  }
-  
-  .ovrSummary {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--toss-muted);
-    padding: 4px 8px 0;
-  }
-  
-  
-  /* --- 컨텐츠 패널 (팀/참가자 목록) --- */
-  .pane {
-    padding: 8px;
-  }
-  
-  .paneHeader {
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    background: var(--toss-bg-subtle);
-    border-radius: 12px;
-    font-weight: 700;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
-  }
-  .paneHeader span:last-child {
-    color: var(--toss-muted);
-    font-weight: 600;
-  }
-  
-  .slotList, .benchList {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .slotItem {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid var(--toss-border);
-    min-height: 42px;
-  }
-  
-  .slotPlayerInfo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-grow: 1;
-  }
-  
-  .slotPosition {
-    font-size: 15px;
-    font-weight: 700;
-    min-width: 32px;
-  }
-  .slotName {
-    font-size: 15px;
-    font-weight: 600;
-  }
-  
-  .slotActions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  
-  .slotOvr {
-    min-width: 28px;
-    text-align: right;
-    font-weight: 800;
-    font-size: 15px;
-  }
-  
-  .pinButton {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: 1px solid var(--toss-border);
-    background: var(--toss-bg-subtle);
-    font-size: 14px;
-    line-height: 1;
-    opacity: 0.6;
-    transition: all .2s ease;
-  }
-  .pinButton:hover {
-    opacity: 1;
-  }
-  .pinButton.pinned {
-    background: #e8f2ff;
-    border-color: #a8c9f5;
-    opacity: 1;
-  }
-  .otherTeamPin {
-    padding: 2px 6px;
-    border-radius: 8px;
-    border: 1px solid #fde2e2;
-    background: #fff5f5;
-    font-size: 10px;
-    font-weight: 700;
-    color: #9b2c2c;
-  }
-  
-  .benchTitle {
-    margin: 16px 4px 8px;
-    color: var(--toss-muted);
-    font-size: 13px;
-    font-weight: 700;
-  }
-  
-  
+.matchInfo {
+  font-size: 13px;
+  color: var(--toss-muted);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.tabs button {
+  border: 1px solid var(--toss-border);
+  background-color: var(--toss-bg-subtle);
+  color: var(--toss-text-secondary);
+  font-weight: 700;
+  padding: 0 14px;
+  height: 38px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.tabs button.activeTab {
+  background-color: #e8f2ff;
+  color: var(--toss-primary);
+  border-color: #a8c9f5;
+}
+
+.controls {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shuffleButton {
+  background-color: #fff;
+  border: 1px solid var(--toss-border);
+  color: var(--toss-text-primary);
+  font-weight: 700;
+  padding: 0 14px;
+  height: 36px;
+  border-radius: 10px;
+  margin-left: auto;
+  /* [추가] 부드러운 모션을 위해 transition을 추가합니다. */
+  transition: all 0.15s ease-out;
+  cursor: pointer;
+}
+
+/* [추가] 마우스를 올렸을 때 (Hover) */
+.shuffleButton:hover {
+  background-color: var(--toss-bg-subtle, #f7f7f7);
+  border-color: var(--toss-text-secondary, #b0b8c1);
+}
+
+/* [추가] 클릭(press)했을 때 (Active) */
+.shuffleButton:active {
+  /* 1. 살짝 작아지는 '눌리는' 모션 */
+  transform: scale(0.96);
+
+  /* 2. 탭과 동일한 활성 색상으로 변경 */
+  background-color: #e8f2ff;
+  border-color: #a8c9f5;
+  color: var(--toss-primary);
+}
+
+.readOnlyFormation {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--toss-border);
+  background: var(--toss-bg-subtle);
+  font-weight: 700;
+}
+
+.ovrSummary {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--toss-muted);
+  padding: 4px 8px 0;
+}
+
+/* --- 컨텐츠 패널 (팀/참가자 목록) --- */
+.pane {
+  padding: 8px;
+}
+
+.paneHeader {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--toss-bg-subtle);
+  border-radius: 12px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+.paneHeader span:last-child {
+  color: var(--toss-muted);
+  font-weight: 600;
+}
+
+.slotList,
+.benchList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slotItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--toss-border);
+  min-height: 42px;
+}
+
+.slotPlayerInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.slotPosition {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 32px;
+}
+.slotName {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.slotActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.slotOvr {
+  min-width: 28px;
+  text-align: right;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.pinButton {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--toss-border);
+  background: var(--toss-bg-subtle);
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+.pinButton:hover {
+  opacity: 1;
+}
+.pinButton.pinned {
+  background: #e8f2ff;
+  border-color: #a8c9f5;
+  opacity: 1;
+}
+.otherTeamPin {
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid #fde2e2;
+  background: #fff5f5;
+  font-size: 10px;
+  font-weight: 700;
+  color: #9b2c2c;
+}
+
+.benchTitle {
+  margin: 16px 4px 8px;
+  color: var(--toss-muted);
+  font-size: 13px;
+  font-weight: 700;
+}

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /* src/index.css */
 
 /* 기본 스타일 초기화 */
@@ -18,18 +17,3 @@ body {
   display: flex;
   flex-direction: column;
 }
-=======
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
->>>>>>> e134f86cb8b1536a8bef8a9e64a8a0f3a6ec248c

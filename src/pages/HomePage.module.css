@@ -5,195 +5,205 @@
 
 /* --- 1. 공통 & 로딩 --- */
 .loadingContainer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-size: 16px;
-    color: var(--toss-text-secondary);
-  }
-  
-  /* --- 2. 선수 선택 화면 (PlayerSelection) --- */
-  .choiceContainer {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .choiceContent {
-    flex-grow: 1;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-  }
-  .choiceTitle {
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0 0 12px 0;
-    line-height: 1.4;
-  }
-  .choiceSubtitle {
-    font-size: 16px;
-    color: var(--toss-text-secondary);
-    margin-bottom: 40px;
-  }
-  .choiceListContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .playerChoiceCard {
-    width: 100%;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--toss-border);
-    background-color: var(--toss-bg-subtle);
-    text-align: left;
-    transition: background-color .2s ease, transform .15s ease;
-  }
-  .playerChoiceCard:hover {
-    background-color: var(--toss-bg-hover);
-    transform: translateY(-2px);
-  }
-  
-  /* --- 3. 메인 프로필 화면 (UserProfile) --- */
-  .mainContainer {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .mainHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--toss-border);
-    background: #fff;
-    position: sticky; top: 0; z-index: 10;
-  }
-  .mainHeader h2 { font-size: var(--fz-title); }
-  .logoutButton {
-    background-color: var(--toss-bg-subtle);
-    color: var(--toss-text-secondary);
-    border: none;
-    border-radius: 999px;
-    padding: 8px 14px;
-    font-size: 14px;
-    font-weight: 600;
-    transition: background-color 0.2s ease;
-  }
-  .logoutButton:hover { background-color: var(--toss-bg-hover); }
-  
-  .profileContent {
-    flex-grow: 1;
-    padding: 24px;
-  }
-  .profileCard {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--toss-bg-subtle);
-    padding: 20px;
-    border-radius: var(--radius-lg);
-    margin-bottom: 24px;
-  }
-  .mainProfileCard {
-    background-color: var(--toss-primary);
-    color: white;
-  }
-  .mainProfileCard .playerTeam,
-  .mainProfileCard .playerOvr span:first-child {
-    color: rgba(255, 255, 255, 0.85);
-  }
-  .mainProfileCard .playerOvr span:last-child {
-    color: white;
-  }
-  .playerInfo {
-    display: flex;
-    flex-direction: column;
-  }
-  .profileName, .playerName {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-  .playerTeam {
-    font-size: var(--fz-body);
-  }
-  .playerOvr {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    font-weight: bold;
-  }
-  .playerOvr span:first-child {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--toss-text-secondary);
-    margin-bottom: 2px;
-  }
-  .playerOvr span:last-child {
-    font-size: 28px;
-    color: var(--toss-text-primary);
-    line-height: 1;
-  }
-  
-  .statsGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    text-align: center;
-    margin-bottom: 16px;
-    padding: 16px;
-    background-color: var(--toss-bg-subtle);
-    border-radius: var(--radius-lg);
-  }
-  .statItem .statValue {
-    font-size: 28px;
-    font-weight: 700;
-    display: block;
-  }
-  .statItem .stat-name {
-    font-size: var(--fz-small);
-    color: var(--toss-text-secondary);
-    display: block;
-  }
-  
-  .menuContainer {
-    margin-top: 24px;
-  }
-  .menuContainer > h3 {
-    font-size: var(--fz-h3);
-    margin: 0 4px 12px;
-  }
-  .menuCard {
-    display: block;
-    width: 100%;
-    padding: 20px;
-    border-radius: var(--radius-lg);
-    margin-bottom: 12px;
-    border: 1px solid var(--toss-border);
-    background-color: var(--toss-bg-subtle);
-    text-align: left;
-    transition: background-color .2s ease, transform .15s ease;
-    color: inherit;
-    text-decoration: none;
-  }
-  .menuCard:hover {
-    background-color: var(--toss-bg-hover);
-    transform: translateY(-2px);
-  }
-  .menuCard h4 {
-    margin: 0 0 4px 0;
-    font-size: var(--fz-h3);
-  }
-  .menuCard p {
-    margin: 0;
-    font-size: var(--fz-body);
-    color: var(--toss-text-secondary);
-  }
-  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 16px;
+  color: var(--toss-text-secondary);
+}
+
+/* --- 2. 선수 선택 화면 (PlayerSelection) --- */
+.choiceContainer {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.choiceContent {
+  flex-grow: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+.choiceTitle {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+.choiceSubtitle {
+  font-size: 16px;
+  color: var(--toss-text-secondary);
+  margin-bottom: 40px;
+}
+.choiceListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.playerChoiceCard {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--toss-border);
+  background-color: var(--toss-bg-subtle);
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+.playerChoiceCard:hover {
+  background-color: var(--toss-bg-hover);
+  transform: translateY(-2px);
+}
+
+/* --- 3. 메인 프로필 화면 (UserProfile) --- */
+.mainContainer {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.mainHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--toss-border);
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.mainHeader h2 {
+  font-size: var(--fz-title);
+}
+.logoutButton {
+  background-color: var(--toss-bg-subtle);
+  color: var(--toss-text-secondary);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.logoutButton:hover {
+  background-color: var(--toss-bg-hover);
+}
+
+.profileContent {
+  flex-grow: 1;
+  padding: 24px;
+}
+.profileCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--toss-bg-subtle);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+.mainProfileCard {
+  background-color: var(--toss-primary);
+  color: white;
+}
+.mainProfileCard .playerTeam,
+.mainProfileCard .playerOvr span:first-child {
+  color: rgba(255, 255, 255, 0.85);
+}
+.mainProfileCard .playerOvr span:last-child {
+  color: white;
+}
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+}
+.profileName,
+.playerName {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.playerTeam {
+  font-size: var(--fz-body);
+}
+.playerOvr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-weight: bold;
+}
+.playerOvr span:first-child {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--toss-text-secondary);
+  margin-bottom: 2px;
+}
+.playerOvr span:last-child {
+  font-size: 28px;
+  color: var(--toss-text-primary);
+  line-height: 1;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: var(--toss-bg-subtle);
+  border-radius: var(--radius-lg);
+}
+.statItem .statValue {
+  font-size: 28px;
+  font-weight: 700;
+  display: block;
+}
+.statItem .stat-name {
+  font-size: var(--fz-small);
+  color: var(--toss-text-secondary);
+  display: block;
+}
+
+.menuContainer {
+  margin-top: 24px;
+}
+.menuContainer > h3 {
+  font-size: var(--fz-h3);
+  margin: 0 4px 12px;
+}
+.menuCard {
+  display: block;
+  width: 100%;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  border: 1px solid var(--toss-border);
+  background-color: var(--toss-bg-subtle);
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+  color: inherit;
+  text-decoration: none;
+}
+.menuCard:hover {
+  background-color: var(--toss-bg-hover);
+  transform: translateY(-2px);
+}
+.menuCard h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--fz-h3);
+}
+.menuCard p {
+  margin: 0;
+  font-size: var(--fz-body);
+  color: var(--toss-text-secondary);
+}

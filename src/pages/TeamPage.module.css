@@ -45,7 +45,9 @@
   padding: 16px 24px;
   border-bottom: 1px solid var(--toss-border);
   background: #fff;
-  position: sticky; top: 0; z-index: 10;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .headerMain {
   width: 100%;
@@ -53,7 +55,9 @@
   justify-content: space-between;
   align-items: center;
 }
-.header h2 { font-size: var(--fz-title); }
+.header h2 {
+  font-size: var(--fz-title);
+}
 .headerActions {
   display: flex;
   gap: 12px;
@@ -69,7 +73,9 @@
   font-weight: 600;
   transition: background-color 0.2s ease;
 }
-.actionButton:hover { background-color: var(--toss-bg-hover); }
+.actionButton:hover {
+  background-color: var(--toss-bg-hover);
+}
 .actionLink {
   color: var(--toss-text-secondary);
   text-decoration: none;
@@ -92,17 +98,27 @@
   border: 1px solid var(--toss-border);
   background-color: #fff;
   text-align: left;
-  transition: background-color .2s ease, transform .15s ease, box-shadow .2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
   position: relative;
   overflow: hidden; /* 자식 요소의 radius를 따르도록 */
 }
 .card:hover {
   background-color: var(--toss-bg-subtle);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
-.card h4 { margin: 0 0 4px 0; font-size: var(--fz-h3); }
-.card p { margin: 0; font-size: var(--fz-body); color: var(--toss-text-secondary); }
+.card h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--fz-h3);
+}
+.card p {
+  margin: 0;
+  font-size: var(--fz-body);
+  color: var(--toss-text-secondary);
+}
 
 /* --- 4. 경기 카드 (MatchCard) --- */
 .cardClickableArea {
@@ -124,9 +140,11 @@
   border: 1px solid var(--toss-border);
   background: #fff;
   font-weight: 700;
-  transition: all .2s ease;
+  transition: all 0.2s ease;
 }
-.attButton:hover { background: var(--toss-bg-hover); }
+.attButton:hover {
+  background: var(--toss-bg-hover);
+}
 .attButton.active {
   background: var(--toss-primary);
   border-color: var(--toss-primary);
@@ -146,10 +164,17 @@
   font-weight: 600;
   border: none;
 }
-.adminButton.primary { background-color: #e0f2fe; color: #0ea5e9; }
-.adminButton.danger { background-color: #fee2e2; color: #b91c1c; }
+.adminButton.primary {
+  background-color: #e0f2fe;
+  color: #0ea5e9;
+}
+.adminButton.danger {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
 .deleteButton {
-  width: 28px; height: 28px;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--toss-border);
   border-radius: 8px;
   background: #f9fafb;
@@ -164,21 +189,27 @@
 /* --- 5. 멤버 카드 (MemberCard) --- */
 .memberCard {
   /* [수정] flex 대신 block 레벨로 변경하고 내부 패딩 추가 */
-  padding: 16px; 
+  padding: 16px;
   border-radius: var(--radius-lg); /* 좀 더 부드러운 느낌을 위해 lg로 변경 */
   margin-bottom: 12px;
   border: 1px solid var(--toss-border);
   background-color: #fff;
-  transition: all .2s ease;
+  transition: all 0.2s ease;
 }
 
 .memberCard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.captainCard { background-color: #dbeafe; border-color: #93c5fd; }
-.viceCard { background-color: #e0f2fe; border-color: #7dd3fc; }
+.captainCard {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+}
+.viceCard {
+  background-color: #e0f2fe;
+  border-color: #7dd3fc;
+}
 
 /* [신규] 이름과 OVR을 묶는 헤더 */
 .memberHeader {
@@ -188,21 +219,21 @@
   margin-bottom: 4px;
 }
 
-.memberName { 
+.memberName {
   font-size: 17px; /* 이름 강조 */
-  font-weight: 600; 
+  font-weight: 600;
   line-height: 1.4;
 }
 
-.memberOvr { 
+.memberOvr {
   font-size: 20px; /* OVR 강조 */
   font-weight: 700;
   color: var(--toss-primary);
   line-height: 1;
 }
 
-.memberMeta { 
-  font-size: 14px; 
+.memberMeta {
+  font-size: 14px;
   color: var(--toss-text-secondary);
 }
 
@@ -220,7 +251,7 @@
   background: #fff;
   font-weight: 600;
   font-size: 14px; /* 폰트 크기 증가 */
-  transition: all .2s ease;
+  transition: all 0.2s ease;
 }
 
 .captainActions button:hover {
@@ -252,7 +283,7 @@
   background-color: #fff;
   color: var(--toss-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .createMatchButton h4 {
@@ -268,7 +299,9 @@
 .topRightActions {
   position: absolute;
   top: 50%; /* 세로 중앙으로 이동 */
-  transform: translateY(-50%); /* 자신의 높이 절반만큼 위로 올려 정확한 중앙 정렬 */
+  transform: translateY(
+    -50%
+  ); /* 자신의 높이 절반만큼 위로 올려 정확한 중앙 정렬 */
   right: 16px; /* 오른쪽 여백 조정 */
   display: flex;
   flex-direction: column;

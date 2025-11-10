@@ -6,108 +6,107 @@
 
 /* --- 1. 레이아웃 --- */
 .pageContainer {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: #fff;
-  }
-  
-  .pageHeader {
-    padding: 16px 24px;
-    flex-shrink: 0;
-  }
-  
-  .backButton {
-    text-decoration: none;
-    color: var(--toss-text-secondary);
-    font-size: 24px;
-    font-weight: 500;
-  }
-  
-  .content {
-    flex-grow: 1;
-    padding: 0 24px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .footer {
-    padding: 24px;
-    flex-shrink: 0;
-  }
-  
-  .loadingContainer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-size: 16px;
-    color: var(--toss-text-secondary);
-  }
-  
-  /* --- 2. 폼 & 입력 요소 --- */
-  .title {
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0 0 40px 0;
-    line-height: 1.4;
-    word-break: keep-all;
-    color: var(--toss-text-primary);
-  }
-  
-  .input {
-    width: 100%;
-    height: var(--btn-h);
-    padding: 0 16px;
-    margin-bottom: 12px;
-    border: 1px solid var(--toss-border);
-    border-radius: var(--radius-md);
-    background-color: var(--toss-bg-subtle);
-    color: var(--toss-text-primary);
-    font-size: 16px;
-    outline: none;
-    appearance: none;
-    transition: border-color 0.2s ease;
-  }
-  
-  .input:focus {
-    border-color: var(--toss-primary);
-  }
-  
-  .input::placeholder {
-    color: var(--toss-muted);
-  }
-  
-  /* --- 3. 버튼 및 피드백 --- */
-  .button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 52px;
-    border-radius: var(--radius-md);
-    font-size: 18px;
-    font-weight: bold;
-    background-color: var(--toss-primary);
-    color: white;
-    transition: background-color 0.2s ease;
-  }
-  
-  .button:hover {
-    background-color: var(--toss-primary-press);
-  }
-  
-  .button:disabled {
-    background-color: var(--toss-muted);
-    cursor: not-allowed;
-  }
-  
-  .errorMessage {
-    color: #d93025;
-    font-size: 14px;
-    text-align: center;
-    margin: 0 0 12px 0;
-    min-height: 1.2em;
-  }
-  
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.pageHeader {
+  padding: 16px 24px;
+  flex-shrink: 0;
+}
+
+.backButton {
+  text-decoration: none;
+  color: var(--toss-text-secondary);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.content {
+  flex-grow: 1;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.footer {
+  padding: 24px;
+  flex-shrink: 0;
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 16px;
+  color: var(--toss-text-secondary);
+}
+
+/* --- 2. 폼 & 입력 요소 --- */
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 40px 0;
+  line-height: 1.4;
+  word-break: keep-all;
+  color: var(--toss-text-primary);
+}
+
+.input {
+  width: 100%;
+  height: var(--btn-h);
+  padding: 0 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--toss-border);
+  border-radius: var(--radius-md);
+  background-color: var(--toss-bg-subtle);
+  color: var(--toss-text-primary);
+  font-size: 16px;
+  outline: none;
+  appearance: none;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  border-color: var(--toss-primary);
+}
+
+.input::placeholder {
+  color: var(--toss-muted);
+}
+
+/* --- 3. 버튼 및 피드백 --- */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 52px;
+  border-radius: var(--radius-md);
+  font-size: 18px;
+  font-weight: bold;
+  background-color: var(--toss-primary);
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.button:hover {
+  background-color: var(--toss-primary-press);
+}
+
+.button:disabled {
+  background-color: var(--toss-muted);
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  color: #d93025;
+  font-size: 14px;
+  text-align: center;
+  margin: 0 0 12px 0;
+  min-height: 1.2em;
+}

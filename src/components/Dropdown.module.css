@@ -3,7 +3,7 @@
  * @description Dropdown 컴포넌트 전용 스타일시트입니다.
  */
 
- .dropdownContainer {
+.dropdownContainer {
   position: relative;
   width: 100%;
   font-size: 15px;
