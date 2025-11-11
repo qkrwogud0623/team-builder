@@ -6,6 +6,13 @@ import { createPortal } from "react-dom";
 import modalStyles from "./CreateMatchModal.module.css";
 import styles from "./ResultsModal.module.css";
 
+const VOTE_CATEGORIES = [
+  { id: "bomber", text: "✈️ 폭격기 (Best Attacker)", stats: ["SHO", "PAC"] },
+  { id: "midfielder", text: "🧠 중원의 지배자 (Best Midfielder)", stats: ["PAS", "DRI"] },
+  { id: "defender", text: "🔒 빗장수비 (Best Defender)", stats: ["DEF", "PHY"] },
+  { id: "goalkeeper", text: "🧤 거미손 (Best Goalkeeper)", stats: ["PHY", "DEF"] },
+];
+
 // 투표 항목별로 결과 목록을 출력한다.
 const ResultCategory = ({ title, results = [] }) => (
   <section className={styles.category}>
@@ -31,12 +38,7 @@ export const ResultsModal = ({ open, onClose, match, data }) => {
     return null;
   }
 
-  const whenStr = match.when?.toDate
-    ? new Intl.DateTimeFormat("ko-KR", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(match.when.toDate())
-    : "-";
+  // 경기 정보(whenStr) 관련 로직 삭제됨
 
   return createPortal(
     <div className={modalStyles.overlay} onMouseDown={onClose}>
@@ -50,17 +52,23 @@ export const ResultsModal = ({ open, onClose, match, data }) => {
             ×
           </button>
         </div>
-        {}
-        <div className={`${modalStyles.body} ${styles.body}`}>
-          <p className={styles.matchInfo}>
-            <strong>{whenStr}</strong>
-            <br />
-            {match.location} 경기
-          </p>
-          <ResultCategory title="공격" results={data.attack} />
-          <ResultCategory title="수비" results={data.defense} />
-          <ResultCategory title="MVP" results={data.mvp} />
+        
+        <div 
+          className={`${modalStyles.body} ${styles.body}`}
+          style={{ paddingTop: '0px' }}
+        >
+          {/* 경기 정보 <p> 태그 삭제됨 */}
+          
+          {/* 투표 결과 목록만 바로 시작 */}
+          {VOTE_CATEGORIES.map((cat) => (
+            <ResultCategory
+              key={cat.id}
+              title={cat.text}
+              results={data[cat.id]}
+            />
+          ))}
         </div>
+
         <div className={modalStyles.footer}>
           <button
             className={`${modalStyles.button} ${modalStyles.secondary}`}
@@ -71,6 +79,6 @@ export const ResultsModal = ({ open, onClose, match, data }) => {
         </div>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };

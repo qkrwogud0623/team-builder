@@ -14,13 +14,13 @@ import { db, auth } from "../firebase";
 import styles from "./PostMatchSurveyModal.module.css";
 import { Dropdown } from "./Dropdown.jsx";
 
-const VOTE_THRESHOLD = 1;
+const VOTE_THRESHOLD = 5;
 
 const VOTE_CATEGORIES = [
-  { id: "bomber", text: "✈️ 폭격기 (Best Attacker)", stat: "SHO" },
-  { id: "midfielder", text: "🧠 중원의 지배자 (MVP)", stat: "PAS" },
-  { id: "defender", text: "🔒 빗장수비 (Best Defender)", stat: "DEF" },
-  { id: "goalkeeper", text: "🧤 거미손 (Best Goalkeeper)", stat: "PHY" },
+  { id: "bomber", text: "✈️ 폭격기 (Best Attacker)", stats: ["SHO", "PAC"] },
+  { id: "midfielder", text: "🧠 중원의 지배자 (MVP)", stats: ["PAS", "DRI"] },
+  { id: "defender", text: "🔒 빗장수비 (Best Defender)", stats: ["DEF", "PHY"] },
+  { id: "goalkeeper", text: "🧤 거미손 (Best Goalkeeper)", stats: ["PHY", "DEF"] },
 ];
 
 // 경기별 투표와 스탯 갱신을 담당한다.
@@ -62,6 +62,7 @@ export const PostMatchSurveyModal = ({
   // 투표 결과를 정리해 스탯 증가 값을 계산한다.
   const runStatAggregation = async (batch, allVotes, userStatsMap) => {
     try {
+      // 1. (동일) 이번 매치의 투표만 집계
       const tally = {};
       VOTE_CATEGORIES.forEach((cat) => {
         tally[cat.id] = {};
@@ -75,38 +76,77 @@ export const PostMatchSurveyModal = ({
         });
       }
 
+      // 2. [수정] 스탯 부스트 객체 및 addBoost 함수 수정
       const statBoosts = {};
 
-      const addBoost = (uid, stat) => {
-        const currentStats = userStatsMap.get(uid) || {};
+      // 'valueToAdd' 인자를 받도록 수정
+      const addBoost = (uid, stat, valueToAdd = 1) => {
+        if (!statBoosts[uid]) statBoosts[uid] = {};
+        const statKey = `stats.${stat}`;
+
+        // userStatsMap에 전체 유저 데이터가 있으므로 .stats에서 가져옴
+        const currentStats = userStatsMap.get(uid)?.stats || {};
         const currentValue = currentStats[stat] || 60;
 
-        if (!statBoosts[uid]) statBoosts[uid] = {};
-        statBoosts[uid][`stats.${stat}`] = currentValue + 1;
+        const pendingValue = statBoosts[uid][statKey];
+
+        if (pendingValue) {
+          statBoosts[uid][statKey] = pendingValue + valueToAdd;
+        } else {
+          statBoosts[uid][statKey] = currentValue + valueToAdd;
+        }
       };
 
+      // 3. [수정] 누적 집계 로직
       VOTE_CATEGORIES.forEach((cat) => {
-        const categoryTally = tally[cat.id];
+        const categoryTally = tally[cat.id]; // 이번 매치의 투표 (예: {uid123: 1, uid456: 2})
+
         for (const uid in categoryTally) {
-          if (categoryTally[uid] >= VOTE_THRESHOLD) {
-            addBoost(uid, cat.stat);
+          const newVotes = categoryTally[uid]; // 이번 매치에서 받은 표
+          if (!newVotes || newVotes === 0) continue;
+
+          // userStatsMap에서 유저의 전체 데이터를 가져옴
+          const userData = userStatsMap.get(uid) || {};
+          
+          // DB에 저장된 "기존" 누적 투표수
+          const currentTally = userData.voteTally?.[cat.id] || 0;
+          // "새로운" 총 누적 투표수
+          const newTotalTally = currentTally + newVotes;
+
+          // (핵심) VOTE_THRESHOLD를 몇 번 넘었는지 계산
+          const statsToAdd =
+            Math.floor(newTotalTally / VOTE_THRESHOLD) -
+            Math.floor(currentTally / VOTE_THRESHOLD);
+
+          // 4. [수정] statBoosts 객체에 스탯과 voteTally 업데이트 모두 기록
+          if (!statBoosts[uid]) statBoosts[uid] = {};
+          
+          // 스탯이 오르든 안 오르든, 새 누적 투표수는 항상 저장
+          statBoosts[uid][`voteTally.${cat.id}`] = newTotalTally;
+
+          if (statsToAdd > 0) {
+            cat.stats.forEach((stat) => {
+              addBoost(uid, stat, statsToAdd); // addBoost가 statBoosts 객체를 채워줌
+            });
           }
         }
       });
 
+      // 5. (동일) statBoosts에 기록된 모든 변경사항을 batch에 적용
       for (const uid in statBoosts) {
         const userRef = doc(db, "users", uid);
         batch.update(userRef, statBoosts[uid]);
       }
 
+      // 6. (동일) 매치 상태 업데이트
       const matchRef = doc(db, "teams", teamId, "matches", match.id);
       batch.update(matchRef, { statsCalculated: true });
+      
     } catch (err) {
       console.error("스탯 집계 중 심각한 오류:", err);
       throw new Error("스탯 집계 실패");
     }
   };
-
   // 투표 제출 후 필요 시 스탯을 갱신한다.
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,7 +201,7 @@ export const PostMatchSurveyModal = ({
           Array.from(uidsToUpdate).map((id) => getDoc(doc(db, "users", id))),
         );
         const userStatsMap = new Map(
-          userDocs.map((doc) => [doc.id, doc.data()?.stats || {}]),
+          userDocs.map((doc) => [doc.id, doc.data() || {}]),
         );
 
         await runStatAggregation(batch, allVotes, userStatsMap);

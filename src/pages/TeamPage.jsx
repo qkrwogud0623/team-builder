@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 팀 상세 페이지로 구성원 관리, 경기 일정, 설문 모달을 모두 제어한다.
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -26,6 +26,13 @@ import { SquadModal } from "../components/SquadModal.jsx";
 import { PostMatchSurveyModal } from "../components/PostMatchSurveyModal.jsx";
 import { ResultsModal } from "../components/ResultsModal.jsx";
 import styles from "./TeamPage.module.css";
+
+const VOTE_CATEGORIES = [
+  { id: "bomber", text: "✈️ 폭격기 (Best Attacker)", stats: ["SHO", "PAC"] },
+  { id: "midfielder", text: "🧠 중원의 지배자 (MVP)", stats: ["PAS", "DRI"] },
+  { id: "defender", text: "🔒 빗장수비 (Best Defender)", stats: ["DEF", "PHY"] },
+  { id: "goalkeeper", text: "🧤 거미손 (Best Goalkeeper)", stats: ["PHY", "DEF"] },
+];
 
 // 팀 정보, 경기, 모달 상태를 총괄한다.
 function TeamPage({ userProfile }) {
@@ -294,60 +301,60 @@ function TeamPage({ userProfile }) {
 
           const sSnap = await getDocs(sCol);
 
-          const counts = {
-            attack: new Map(),
-            defense: new Map(),
-            mvp: new Map(),
-          };
+          // [시작] 여기부터가 수정한 새 로직입니다.
+          
+          // 1. VOTE_CATEGORIES를 기반으로 동적 집계 Map을 생성
+          const categoryMaps = VOTE_CATEGORIES.reduce((acc, cat) => {
+            acc[cat.id] = new Map();
+            return acc;
+          }, {});
 
+          // 2. Firebase 문서(surveys)를 순회하며 집계
           sSnap.docs.forEach((d) => {
-            const v = d.data() || {};
+            const vote = d.data() || {};
 
-            (v.attack || []).forEach((uid) =>
-              counts.attack.set(uid, (counts.attack.get(uid) || 0) + 1),
-            );
-
-            (v.defense || []).forEach((uid) =>
-              counts.defense.set(uid, (counts.defense.get(uid) || 0) + 1),
-            );
-
-            if (v.mvp) counts.mvp.set(v.mvp, (counts.mvp.get(v.mvp) || 0) + 1);
+            VOTE_CATEGORIES.forEach((cat) => {
+              const votedUid = vote[cat.id]; // 'bomber', 'midfielder' ID로 득표를 찾음
+              if (votedUid) {
+                const map = categoryMaps[cat.id];
+                map.set(votedUid, (map.get(votedUid) || 0) + 1);
+              }
+            });
           });
 
+          // 3. Map을 정렬된 배열로 변환하는 헬퍼 함수
           const toSortedArr = (mp) =>
             [...mp.entries()]
-
               .map(([uid, cnt]) => ({
                 uid,
                 cnt,
                 name: nameMap.get(uid) || `(탈퇴)`,
               }))
-
               .sort((a, b) => b.cnt - a.cnt);
+
+          // 4. VOTE_CATEGORIES를 기반으로 동적 data 객체 생성
+          const summary = VOTE_CATEGORIES.reduce((acc, cat) => {
+            acc[cat.id] = toSortedArr(categoryMaps[cat.id]);
+            return acc;
+          }, {});
 
           setResultsState({
             open: true,
-
             match,
-
-            data: {
-              attack: toSortedArr(counts.attack),
-
-              defense: toSortedArr(counts.defense),
-
-              mvp: toSortedArr(counts.mvp),
-            },
+            data: summary, // 'bomber', 'midfielder' 등이 포함된 객체를 전달
           });
+          
+          // [끝] 여기까지가 수정한 새 로직입니다.
+
         } else {
           setSquadState({ open: true, match, attendees });
         }
       } catch (error) {
         console.error("카드 클릭 핸들러 에러:", error);
-
         alert("데이터를 불러오는 중 오류가 발생했습니다.");
       }
     },
-    [teamId, buildAttendeesForMatch],
+    [teamId, buildAttendeesForMatch], // 의존성 배열은 그대로 둡니다.
   );
 
   const handleSetVice = async (memberToUpdate) => {
