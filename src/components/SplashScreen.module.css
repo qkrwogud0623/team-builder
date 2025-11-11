@@ -1,0 +1,110 @@
+/**
+ * @file SplashScreen.module.css
+ * @description Fullscreen splash overlay with a clean, app-consistent theme.
+ */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  /* 변경: 복잡한 그라데이션 대신 앱의 기본 흰색 배경 사용 */
+  background: #ffffff;
+  /* 변경: 어두운 배경에서 흰색 글씨였던 것을 어두운 글씨로 변경 */
+  color: #192648; /* 어두운 남색 (기존 그라데이션 색상 활용) */
+  text-align: center;
+  z-index: 9999;
+  animation: fadeIn 280ms ease-out;
+}
+
+.logoWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 삭제 제안: .logoBadge
+  '유리알 효과(backdrop-filter)'는 디자인 통일성을 해칠 수 있습니다.
+  꼭 필요한 것이 아니라면 제거하고 로고를 바로 보여주는 것이 깔끔합니다.
+*/
+.logoBadge {
+  /* 기존의 유리알 효과 대신 로고를 바로 표시합니다. */
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  /* 변경: 흰 배경에서는 drop-shadow가 불필요하거나 어색할 수 있음 */
+  /* filter: drop-shadow(0 8px 18px rgba(49, 130, 246, 0.45)); */
+}
+
+.brand {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.brandAccent {
+  /* 변경: 기존 밝은 하늘색 대신 메인 브랜드 색상으로 변경 */
+  color: #4f8ef7; /* 기존 그라데이션의 밝은 파란색 */
+}
+
+.tagline {
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* 변경: 흰색이 아닌 회색 계열로 변경 */
+  color: #5a647e;
+}
+
+.spinner {
+  margin-top: 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  /* 변경: 배경색에 맞춰 스피너 트랙 색상 변경 */
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  /* 변경: 스피너 색상을 브랜드 색상으로 변경 */
+  border-top-color: #4f8ef7;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash {
+    animation: none;
+  }
+
+  .spinner {
+    animation: none;
+    /* 변경: 애니메이션 없을 시, 트랙과 동일한 색상으로 통일 */
+    border-top-color: rgba(0, 0, 0, 0.1);
+  }
+}

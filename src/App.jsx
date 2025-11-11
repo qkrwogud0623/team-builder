@@ -12,6 +12,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import SplashScreen from './components/SplashScreen.jsx';
 
 // 전역 스타일
 import './styles/global.css';
@@ -30,6 +31,16 @@ function App() {
   const [user, setUser] = useState(null); // Firebase 인증 유저 객체
   const [profile, setProfile] = useState(null); // Firestore에 저장된 유저 프로필
   const [isAuthLoading, setIsAuthLoading] = useState(true); // 인증 상태 확인 로딩
+  const [isSplashVisible, setIsSplashVisible] = useState(true); // Splash screen visibility gate
+  const rawBaseUrl = import.meta.env.BASE_URL ?? '/';
+  const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, '') || '/';
+  const routerBasename = normalizedBaseUrl === '/' ? undefined : normalizedBaseUrl;
+
+  useEffect(() => {
+    const SPLASH_DURATION = 1400;
+    const timer = setTimeout(() => setIsSplashVisible(false), SPLASH_DURATION);
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- 생명주기 훅 ---
 
@@ -72,6 +83,10 @@ function App() {
   // --- 렌더링 로직 ---
 
   // 인증 및 프로필 로딩 중일 때 로딩 화면을 표시합니다.
+  if (isSplashVisible) {
+    return <SplashScreen />;
+  }
+
   if (isAuthLoading) {
     return <div className="loading-container">로딩 중...</div>;
   }
@@ -112,7 +127,7 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       {renderRoutes()}
     </BrowserRouter>
   );
