@@ -14,7 +14,7 @@ import { db, auth } from "../firebase";
 import styles from "./PostMatchSurveyModal.module.css";
 import { Dropdown } from "./Dropdown.jsx";
 
-const VOTE_THRESHOLD = 5;
+const VOTE_THRESHOLD = 1; // 몇 표마다 스탯이 오르는지 설정
 
 const VOTE_CATEGORIES = [
   { id: "bomber", text: "✈️ 폭격기 (Best Attacker)", stats: ["SHO", "PAC"] },
